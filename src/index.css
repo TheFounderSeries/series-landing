@@ -1,0 +1,150 @@
+@import url('https://fonts.cdnfonts.com/css/sf-pro-display');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --black: #000000;
+  --white: #ffffff;
+}
+
+body {
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--white);
+  color: var(--black);
+}
+
+.rotating-text span {
+  @apply absolute opacity-0 transition-opacity duration-500;
+}
+
+.rotating-text span.visible {
+  @apply opacity-100;
+}
+
+.loading-bar {
+  @apply h-1 bg-black transform origin-left;
+  animation: loadingProgress 5s linear forwards;
+}
+
+@keyframes loadingProgress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.slide-transition {
+  @apply transition-all duration-500 ease-in-out;
+}
+
+.input-field {
+  @apply w-full bg-transparent border-b border-black/20 py-2 px-0 text-black placeholder-black/50 focus:outline-none;
+}
+
+.button {
+  @apply px-8 py-3 rounded-full transition-all duration-150 text-center relative overflow-hidden;
+}
+
+.button-primary {
+  @apply button bg-black text-white hover:bg-black/90 transform hover:scale-[1.02] active:scale-[0.98] transition-transform;
+}
+
+.button-secondary {
+  @apply button border border-black text-black hover:bg-black/5 transform hover:scale-[1.02] active:scale-[0.98] hover:border-black/40;
+}
+
+/* Icon button animations */
+.icon-button {
+  @apply transition-all duration-150 ease-out hover:scale-[1.08] active:scale-[0.96] hover:bg-black/5 rounded-full p-2;
+}
+
+/* Survey option animations */
+.survey-option {
+  @apply transition-all duration-150 ease-out hover:scale-[1.01] active:scale-[0.99] hover:bg-black/5 hover:border-black/30;
+}
+
+/* Emoji button animation */
+.emoji-button {
+  @apply transition-all duration-150 ease-out hover:scale-[1.15] active:scale-[0.92];
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, 
+    #FF6B6B, #4ECDC4, #FFD93D, #6C5CE7, 
+    #FF9A8B, #45B7D1, #FFCD3C, #8B5CF6,
+    #FF8E9E, #40D4BB, #FFB347, #7C3AED
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient 12s ease infinite;
+  background-size: 400% 400%;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes shine {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* Swipeable panels styles */
+.panel-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  touch-action: pan-y pinch-zoom;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar */
+.snap-y {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-snap-type: y mandatory;
+  will-change: transform, scroll-position;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  -webkit-overflow-scrolling: touch;
+}
+
+.snap-y::-webkit-scrollbar {
+  display: none;
+}
+
+.snap-start {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
