@@ -271,7 +271,7 @@ const App = () => {
     const messageText = isAppleDevice 
       ? `Welcome to Series! Text your color to get started: ${colorText}`
       : `Hey! I'm using Series, the first AI social network. Text your color to get started: ${colorText}`;
-    const phoneNumber = "+16462638972";
+    const phoneNumber = "+19495965450";
     
     const url = isAppleDevice
       ? `imessage://${phoneNumber}&body=${encodeURIComponent(messageText)}`
