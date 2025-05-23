@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
 import Logo from './components/Logo';
 import RollingWord from './components/RollingWord';
-import NextPage from './ProfileOnboarding';
+import ProfileOnboarding from './ProfileOnboarding';
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -44,7 +44,7 @@ const App = () => {
   };
 
   if (showNextPage) {
-    return <NextPage />;
+    return <ProfileOnboarding />;
   }
 
   return (
@@ -147,15 +147,28 @@ const App = () => {
       </div>
       
       {/* Backer icons at the bottom */}
-      <div className="fixed bottom-8 left-0 right-0">
-        <div className="flex justify-center items-center gap-8">
-          <div className="w-16 h-8 bg-gray-200 rounded-md opacity-50"></div>
-          <div className="w-16 h-8 bg-gray-200 rounded-md opacity-50"></div>
-          <div className="w-16 h-8 bg-gray-200 rounded-md opacity-50"></div>
-          <div className="w-16 h-8 bg-gray-200 rounded-md opacity-50"></div>
-          <div className="w-16 h-8 bg-gray-200 rounded-md opacity-50"></div>
+      
+      <div className="fixed bottom-4 left-0 right-0 px-8">
+        <motion.p 
+          className="text-sm text-gray-400 mb-8 text-center font-bold tracking-wider uppercase"
+          initial="initial"
+          animate="animate"
+          variants={fadeInUp}
+        >
+          As seen on
+        </motion.p>
+        <div className="flex justify-between items-center w-full">
+          <img src="/images/9 3.png" alt="Backer 1" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
+          <img src="/images/10 4.png" alt="Backer 2" className="h-14 w-auto opacity-70 hover:opacity-100 transition-opacity" />
+          <img src="/images/9 1.png" alt="Backer 3" className="h-16 w-auto opacity-70 hover:opacity-100 transition-opacity" />
+          <img src="/images/keyboard_arrow_down.png" alt="Divider" className="h-8 w-auto opacity-50" />
+          <img src="/images/10 1.png" alt="Backer 4" className="h-14 w-auto opacity-70 hover:opacity-100 transition-opacity" />
+          <img src="/images/keyboard_arrow_down.png" alt="Divider" className="h-8 w-auto opacity-50" />
+          <img src="/images/9 2.png" alt="Backer 5" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
+          <img src="/images/11 1.png" alt="Backer 6" className="h-16 w-auto opacity-70 hover:opacity-100 transition-opacity" />
+          <img src="/images/10 3.png" alt="Backer 7" className="h-14 w-auto opacity-70 hover:opacity-100 transition-opacity" />
         </div>
-          </div>
+      </div>
           </>
         )}
       </AnimatePresence>

@@ -4,13 +4,14 @@ import MessageCircle from 'lucide-react/dist/esm/icons/message-circle';
 import User from 'lucide-react/dist/esm/icons/user';
 import Phone from 'lucide-react/dist/esm/icons/phone';
 import WelcomePage from './WelcomePage';
+import QuestionnaireOnboarding from './QuestionnaireOnboarding';
 
 // Simple Card components since we can't import them
 const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
   <div className={`bg-white rounded-lg shadow-sm overflow-hidden ${className}`}>
     {children}
   </div>
-);
+)
 
 const CardContent = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
   <div className={`p-4 ${className}`}>
@@ -30,15 +31,17 @@ interface ProfileOnboardingProps {
 }
 
 const ProfileOnboarding = ({
-  firstName = 'John',
-  lastName = 'Doe',
-  bio = 'new Series user',
+  firstName = '',
+  lastName = '',
+  bio = '',
   connections: initialConnections = [
-    'PLACEHOLDER Input your connections here'
+    '',
+    '',
+    ''
   ],
   color = 'purple',
-  initialProfilePic = 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80',
-  location = 'New York, New York, US',
+  initialProfilePic = '/images/default-avatar.png',
+  location = '',
   age = 18
 }: ProfileOnboardingProps) => {
   const [name, setName] = useState(firstName + ' ' + lastName);
@@ -47,7 +50,7 @@ const ProfileOnboarding = ({
   const [userLocation, setUserLocation] = useState(location);
   const [userAge, setUserAge] = useState(age);
   const [isLoading, setIsLoading] = useState(false);
-  const [showNextPage, setShowNextPage] = useState(false);
+  const [pageState, setPageState] = useState<'profile' | 'questionnaire' | 'welcome'>('profile');
   const [errors, setErrors] = useState<{name?: string; bio?: string; location?: string; age?: string}>({});
   const [profilePic, setProfilePic] = useState(initialProfilePic);
   const [isUploading, setIsUploading] = useState(false);
@@ -193,7 +196,8 @@ const ProfileOnboarding = ({
       return;
     }
     
-    setIsLoading(true);
+    // Don't show loading screen when transitioning to questionnaire
+    // Just log the data and proceed
     console.log('Starting user creation process...', {
       name,
       bio: description,
@@ -222,6 +226,7 @@ const ProfileOnboarding = ({
           first: name.split(' ')[0],
           last: name.split(' ').slice(1).join(' ') || 'User'
         },
+        groups: connections,
         bio: description,
         onboarding: {
           completed: false,
@@ -276,6 +281,7 @@ const ProfileOnboarding = ({
       
       const result = await response.json();
       console.log('User created successfully:', result);
+      setUserId(result.userId);
       
       // If we have a processed image ID, we need to update the user's profile with it
       if (processedImageId) {
@@ -285,7 +291,7 @@ const ProfileOnboarding = ({
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
-              user_id: result.userId,
+              user_id: userId,
               image_url: processedImageId  // Just send the ID, not the full URL
             })
           });
@@ -303,35 +309,12 @@ const ProfileOnboarding = ({
         }
       }
       
-      // Call the search endpoint to generate embeddings and archetypes
-      try {
-        console.log('Triggering search and archetype generation...');
-        const searchResponse = await fetch(
-          `https://series-api-202642739529.us-central1.run.app/api/users/${result.userId}/search`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-
-        if (!searchResponse.ok) {
-          const searchError = await searchResponse.json().catch(() => ({}));
-          console.warn('Search endpoint returned non-200 status, but continuing:', {
-            status: searchResponse.status,
-            error: searchError
-          });
-          // Don't block the user flow if search fails
-        } else {
-          const searchResult = await searchResponse.json();
-          console.log('Search and archetype generation started:', searchResult);
-        }
-      } catch (searchError) {
-        console.error('Error triggering search and archetype generation:', searchError);
-        // Don't block the user flow if search fails
-      }
+      // Search and archetype generation will be handled in the questionnaire step
+      console.log('Proceeding to questionnaire - search will be handled there');
       
-      // Proceed to welcome page after both operations
-      setShowNextPage(true);
+      console.log("User ID: ", result.userId);
+      // Proceed directly to questionnaire page without loading
+      setPageState('questionnaire');
       
     } catch (error) {
       console.error('Error in handleButtonClick:', error);
@@ -340,8 +323,8 @@ const ProfileOnboarding = ({
     }
   };
   
-  if (showNextPage) {
-    return <WelcomePage bio={description} />;
+  if (pageState === 'questionnaire') {
+    return <QuestionnaireOnboarding bio={description} userId={userId} />;
   }
 
   // Animation variants
@@ -451,8 +434,16 @@ const ProfileOnboarding = ({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8 flex items-center justify-center">
-      <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8 flex flex-col items-center justify-center relative">
+      {/* Page Indicator - Outside main content so it stays visible during loading */}
+      <div className="absolute top-8 left-1/2 transform -translate-x-1/2 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-sm border border-gray-200 z-50">
+        <div className="flex items-center space-x-1.5 px-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-black"></div>
+          <div className="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
+        </div>
+      </div>
+      
+      <div className="w-full max-w-6xl mt-14 flex flex-col md:flex-row gap-8 relative">
         {/* Left side - Profile Card */}
         <motion.div 
           className="w-full md:w-96"
@@ -461,36 +452,28 @@ const ProfileOnboarding = ({
           exit={{ opacity: 0 }}
         >
           <div className="relative bg-white rounded-lg overflow-hidden shadow-sm">
-            {/* Profile header with Series logo */}
-
-            
             {/* Profile image */}
             <div className="relative w-full aspect-[3/4] bg-gray-100">
               <img 
                 src={profilePic}
                 alt={`${firstName} ${lastName}`}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-center filter"
               />
-              {/* Loading indicator removed as we're no longer uploading images separately */}
               
               {/* Action buttons */}
               <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
-                <div className="opacity-50 cursor-not-allowed flex flex-col items-center w-16">
-                  <button className="bg-black/30 backdrop-blur-sm p-3 rounded-xl shadow-md w-full flex flex-col items-center" disabled>
-                    <MessageCircle size={20} className="text-white" />
-                    <span className="text-[10px] mt-1 text-white font-medium">message</span>
-                  </button>
-                </div>
                 <button className="bg-black/30 backdrop-blur-sm p-3 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-16">
-                  <User size={20} className="text-white" />
-                  <span className="text-[10px] mt-1 text-white font-medium">join</span>
+                  <MessageCircle size={20} className="text-white fill-current" />
+                  <span className="text-[10px] mt-1 text-white font-medium">message</span>
                 </button>
-                <div className="opacity-50 cursor-not-allowed flex flex-col items-center w-16">
-                  <button className="bg-black/30 backdrop-blur-sm p-3 rounded-xl shadow-md w-full flex flex-col items-center" disabled>
-                    <Phone size={20} className="text-white" />
-                    <span className="text-[10px] mt-1 text-white font-medium">call</span>
-                  </button>
-                </div>
+                <button className="bg-black/30 backdrop-blur-sm p-3 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-16">
+                  <User size={20} className="text-white fill-current" />
+                  <span className="text-[10px] mt-1 text-white font-medium">graph</span>
+                </button>
+                <button className="bg-black/30 backdrop-blur-sm p-3 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-16">
+                  <Phone size={20} className="text-white fill-current" />
+                  <span className="text-[10px] mt-1 text-white font-medium">call</span>
+                </button>
               </div>
             </div>
           </div>
@@ -518,8 +501,8 @@ const ProfileOnboarding = ({
             </Card>
             
             {/* Bio card */}
-            <Card className="mb-4">
-              <CardContent className="p-4">
+            <Card className="mb-6">
+              <CardContent className="p-6">
                 <motion.div variants={item}>
                   <h3 className="font-medium text-sm text-gray-900 mb-2">Me</h3>
                   <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
@@ -529,14 +512,14 @@ const ProfileOnboarding = ({
             
             {/* Connections card */}
             <Card>
-              <CardContent className="p-4">
+              <CardContent className="p-6">
                 <div className="flex-1">
                   <h3 className="font-medium text-sm text-gray-900 mb-2">Who I Know</h3>
                   <ul className="space-y-2">
                     {connections.map((connection, index) => (
                       <li key={index} className="flex">
-                        <span className="text-blue-500 mr-2 mt-1.5 flex-shrink-0">•</span>
-                        <span className="text-sm mr-1 mt-2 text-gray-600 break-words flex-1">{connection}</span>
+                        <span className="text-black-500 mr-2 mt-0.5 flex-shrink-0">•</span>
+                        <span className="text-sm mr-1 mt-1 text-gray-600 break-words flex-1">{connection}</span>
                       </li>
                     ))}
                   </ul>
@@ -548,27 +531,23 @@ const ProfileOnboarding = ({
         
         {/* Right side - Form */}
         <motion.div 
-          className="flex-1 flex flex-col justify-between py-8"
+          className="flex-1 flex flex-col px-12 overflow-y-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
           <div className="max-w-xl mx-auto w-full space-y-8 flex-1 flex flex-col">
             {/* Name and Picture on the same line */}
-            <div className="mb-8">
+            <div className="mb-5">
               <div className="flex gap-8">
                 {/* Name field - 65% width */}
                 <div className="w-[65%]">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex items-center bg-gray-100 rounded-xl px-3 py-2">
-                      <span className="text-gray-700">👤</span>
-                    </div>
-                    <label className="block text-xl font-medium text-gray-900">Name</label>
+                  <div className="flex items-center gap-2 mb-3">
+                    <label className="block text-2xl font-medium text-gray-900">Name</label>
                   </div>
                   <div className="relative">
                     <input
                       type="text"
-                      value={name}
                       onChange={(e) => {
                         setName(e.target.value);
                         // Clear error when user starts typing
@@ -576,7 +555,7 @@ const ProfileOnboarding = ({
                           setErrors({...errors, name: undefined});
                         }
                       }}
-                      className={`block w-full rounded-2xl border ${errors.name ? 'border-red-500' : 'border-gray-200'} shadow-sm px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-300 focus:ring-0`}
+                      className={`block w-full rounded-2xl border-2 ${errors.name ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
                       placeholder="John Doe"
                       disabled={isLoading}
                     />
@@ -588,22 +567,21 @@ const ProfileOnboarding = ({
                 
                 {/* Profile Picture Upload Box - 35% width */}
                 <div className="w-[35%] flex flex-col">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex items-center bg-gray-100 rounded-xl px-3 py-2">
-                      <span className="text-gray-700">📸</span>
-                    </div>
-                    <label className="block text-xl font-medium text-gray-900">Profile</label>
+                  <div className="flex items-center gap-2 mb-3">
+                    <label className="block text-2xl font-medium text-gray-900">Profile</label>
                   </div>
                   <label 
                     htmlFor="profile-photo-upload"
-                    className="flex items-center justify-center h-[58px] bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer rounded-2xl shadow-sm"
+                    className="group flex items-center justify-center h-[58px] bg-gray-300 hover:bg-gray-500 transition-colors cursor-pointer rounded-2xl shadow-lg"
                     title="Upload new photo"
                   >
                     <div className="flex flex-col items-center">
-                      <span className="text-sm font-medium text-gray-700">Upload</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-700 group-hover:text-white transition-colors">Upload</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-700 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                      </div>
                     </div>
                     <input
                       id="profile-photo-upload"
@@ -623,11 +601,8 @@ const ProfileOnboarding = ({
             <div className="flex gap-8 mt-8 mb-8">
               {/* Age field */}
               <div className="w-[25%]">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="flex items-center bg-gray-100 rounded-xl px-3 py-2">
-                    <span className="text-gray-700">🪪</span>
-                  </div>
-                  <label className="block text-xl font-medium text-gray-900">Age</label>
+                <div className="flex items-center gap-2 mb-3">
+                  <label className="block text-2xl font-medium text-gray-900">Age</label>
                 </div>
                 <div className="relative inline-block w-full">
                   <select
@@ -638,11 +613,10 @@ const ProfileOnboarding = ({
                         setErrors({...errors, age: undefined});
                       }
                     }}
-                    className={`block w-full appearance-none rounded-2xl border ${errors.age ? 'border-red-500' : 'border-gray-200'} shadow-sm px-5 py-4 text-base text-gray-900 focus:border-gray-300 focus:ring-0`}
+                    className={`block w-full appearance-none rounded-2xl border-2 border-gray-200 shadow-lg px-5 py-4 text-base text-gray-900 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
                     disabled={isLoading}
                   >
-                    <option value="18">18</option>
-                    {Array.from({ length: 82 }, (_, i) => i + 19).map(age => (
+                    {Array.from({ length: 52 }, (_, i) => i + 14).map(age => (
                       <option key={age} value={age}>{age}</option>
                     ))}
                   </select>
@@ -659,11 +633,8 @@ const ProfileOnboarding = ({
               
               {/* Location field */}
               <div className="w-[75%]">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="flex items-center bg-gray-100 rounded-xl px-3 py-2">
-                    <span className="text-gray-700">📍</span>
-                  </div>
-                  <label className="block text-xl font-medium text-gray-900">Location</label>
+                <div className="flex items-center gap-2 mb-3">
+                  <label className="block text-2xl font-medium text-gray-900">Location</label>
                 </div>
                 <div className="relative">
                   <input
@@ -676,7 +647,7 @@ const ProfileOnboarding = ({
                         setErrors({...errors, location: undefined});
                       }
                     }}
-                    className={`block w-full rounded-2xl border ${errors.location ? 'border-red-500' : 'border-gray-200'} shadow-sm px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-300 focus:ring-0`}
+                    className={`block w-full rounded-2xl border-2 border-gray-200 shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
                     placeholder="New York, New York, US"
                     disabled={isLoading}
                   />
@@ -688,22 +659,23 @@ const ProfileOnboarding = ({
             </div>
             
             {/* Bio field */}
-            <div className="space-y-2 mt-6">
-              <label className="block text-xl font-medium text-gray-900">Who you are and what you do:</label>
+            <div className="space-y-2 mt-10">
+              <div className="flex items-center gap-2 mb-1">
+                <label className="block text-2xl font-medium text-gray-900">Who you are and what you do:</label>
+              </div>
               <div className="relative">
                 <div className="relative">
                   <textarea
-                    rows={6}
+                    rows={3}
                     value={description}
                     onChange={(e) => {
                       setDescription(e.target.value);
-                      // Clear error when user starts typing
                       if (errors.bio) {
-                        setErrors({...errors, bio: undefined});
+                        setErrors(prev => ({ ...prev, bio: '' }));
                       }
                     }}
-                    className={`block w-full rounded-xl border ${errors.bio ? 'border-red-500' : 'border-gray-200'} shadow-sm px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-gray-300 focus:ring-0`}
-                    placeholder="junior @UCLA building e-commerce platform for shoes..."
+                    className={`block w-full rounded-2xl border-2 ${errors.bio ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
+                    placeholder="New Series user at Series University that's working on AI/ML projects in the Bay"
                     disabled={isLoading}
                   />
                   {errors.bio && (
@@ -714,26 +686,27 @@ const ProfileOnboarding = ({
             </div>
             
             {/* Connections field with add/remove buttons */}
-            <div className="space-y-2 mt-6 mb-10">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="flex items-center bg-gray-100 rounded-xl px-3 py-2">
-                  <span className="text-gray-700">👥</span>
-                </div>
-                <label className="block text-xl font-medium text-gray-900">Who you know</label>
+            <div className="space-y-8 mt-8 mb-10">
+              <div className="flex items-center gap-2">
+                <label className="block text-2xl font-medium text-gray-900">Who you know:</label>
               </div>
               <div className="space-y-2">
                 {connections.map((connection, index) => (
                   <div key={index} className="relative">
-                    <input
-                      type="text"
+                    <textarea
+                      rows={2}
                       value={connection}
                       onChange={(e) => {
                         const updatedConnections = [...connections];
                         updatedConnections[index] = e.target.value;
                         setConnections(updatedConnections);
                       }}
-                      className={`block w-full rounded-xl border border-gray-200 shadow-sm px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-gray-300 focus:ring-0`}
-                      placeholder="Enter name"
+                      className={`block w-full rounded-xl border-2 border-gray-200 shadow-lg px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
+                      placeholder={
+                        index === 0 ? "full-stack engineers at Series University Computer Society" :
+                        index === 1 ? "product management team at Innovative Corp" :
+                        "Professor Jarvis's group at Series University ML and AI Lab"
+                      }
                       disabled={isLoading}
                     />
                     {connections.length > 1 && (
@@ -754,7 +727,7 @@ const ProfileOnboarding = ({
                     )}
                   </div>
                 ))}
-                {connections.length < 5 && (
+                {connections.length < 3 && (
                   <button
                     type="button"
                     onClick={() => setConnections([...connections, ''])}
@@ -771,12 +744,12 @@ const ProfileOnboarding = ({
             </div>
             
             {/* Next button */}
-            <div className="mt-auto pt-8 flex justify-center">
+            <div className="mt-auto mt-10 pt-8 flex justify-center">
               <AnimatePresence mode="wait">
                 {isLoading ? (
                   <motion.div
                     key="loading"
-                    className="fixed inset-0 flex items-center justify-center bg-white z-50"
+                    className="fixed inset-0 flex items-center justify-center bg-white z-40"
                     variants={slideVariants}
                     initial="enter"
                     animate="center"
@@ -822,7 +795,7 @@ const ProfileOnboarding = ({
                 ) : (
                   <motion.button
                     key="button"
-                    className={`${isLoading ? 'bg-gray-400' : 'bg-black hover:bg-black/80'} text-white rounded-full p-3 w-24 h-10 mb-10 inline-flex items-center justify-center transition-colors`}
+                    className={`${isLoading ? 'bg-gray-400' : 'bg-black hover:bg-black/80'} text-white rounded-full p-3 w-24 h-9 mb-10 inline-flex items-center justify-center transition-colors`}
                     initial="initial"
                     animate="animate"
                     variants={fadeInUp}
@@ -831,7 +804,7 @@ const ProfileOnboarding = ({
                     onClick={!isLoading ? handleButtonClick : undefined}
                     disabled={isLoading}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                     </svg>
                   </motion.button>
