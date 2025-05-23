@@ -248,67 +248,69 @@ const QuestionnaireOnboarding = () => {
 
           <div className="flex justify-center">
             <AnimatePresence mode="wait">
-              {isLoading ? (
-              <motion.div
-                key="loading"
-                className="fixed inset-0 flex items-center justify-center bg-white z-40"
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-              >
-                <div className="flex items-center">
-                  <motion.span
-                    className="text-[10rem] font-bold leading-none inline-block relative"
-                  >
-                    S
-                  </motion.span>
-                  <motion.div
-                    className="w-20 h-4 overflow-hidden ml-4 relative -bottom-12"
-                    initial={{ scaleX: 0 }}
-                    animate={{ 
-                      scaleX: 1,
-                      transformOrigin: 'left center',
-                    }}
-                    transition={{ 
-                      duration: 3,
-                      ease: "easeInOut"
-                    }}
-                  >
-                    <motion.div 
-                      className="h-full bg-black absolute top-0 left-0"
-                      initial={{ width: '0%' }}
-                      animate={{ width: '100%' }}
+              {isLoading && (
+                <motion.div
+                  key="loading"
+                  className="fixed inset-0 flex items-center justify-center bg-white z-40"
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                >
+                  <div className="flex items-center">
+                    <motion.span
+                      className="text-[10rem] font-bold leading-none inline-block relative"
+                    >
+                      S
+                    </motion.span>
+                    <motion.div
+                      className="w-20 h-4 overflow-hidden ml-4 relative -bottom-12"
+                      initial={{ scaleX: 0 }}
+                      animate={{ 
+                        scaleX: 1,
+                        transformOrigin: 'left center',
+                      }}
                       transition={{ 
                         duration: 3,
                         ease: "easeInOut"
                       }}
-                    />
-                  </motion.div>
-                </div>
-              </motion.div>
-            ) : (
+                    >
+                      <motion.div 
+                        className="h-full bg-black absolute top-0 left-0"
+                        initial={{ width: '0%' }}
+                        animate={{ width: '100%' }}
+                        transition={{ 
+                          duration: 3,
+                          ease: "easeInOut"
+                        }}
+                      />
+                    </motion.div>
+                  </div>
+                </motion.div>
+              )}
               <motion.button
                 key="button"
-                className={`${isLoading ? 'bg-gray-400' : allQuestionsAnswered ? 'bg-black hover:bg-black/80' : 'bg-gray-300'} text-white rounded-full ${isMobile ? 'p-2 w-20 h-8' : 'p-3 w-24 h-9'} mb-10 inline-flex items-center justify-center transition-colors relative group`}
+                className={`${
+                  isLoading 
+                    ? 'bg-gray-400' 
+                    : allQuestionsAnswered 
+                      ? 'bg-black hover:bg-black/80' 
+                      : 'bg-gray-300'
+                } text-white rounded-full ${
+                  isMobile ? 'p-2 w-20 h-8' : 'p-3 w-24 h-9'
+                } mb-10 inline-flex items-center justify-center transition-colors relative group`}
                 initial="initial"
                 animate="animate"
                 variants={fadeInUp}
                 whileHover={!isLoading && allQuestionsAnswered ? { scale: 1.05 } : {}}
                 whileTap={!isLoading && allQuestionsAnswered ? { scale: 0.95 } : {}}
-                onClick={!isLoading ? handleNext : undefined}
-                disabled={isLoading}
+                onClick={!isLoading && allQuestionsAnswered ? handleNext : undefined}
+                disabled={isLoading || !allQuestionsAnswered}
               >
-                {!allQuestionsAnswered && (
-                  <span className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                    Please answer all questions
-                  </span>
-                )}
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
-                </motion.button>
-              )}
+              </motion.button>
             </AnimatePresence>
           </div>
         </motion.div>
