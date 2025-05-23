@@ -50,8 +50,8 @@ const ProfileOnboarding = ({
   const [showNextPage, setShowNextPage] = useState(false);
   const [errors, setErrors] = useState<{name?: string; bio?: string; location?: string; age?: string}>({});
   const [profilePic, setProfilePic] = useState(initialProfilePic);
-  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
-  const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [processedImageId, setProcessedImageId] = useState<string | null>(null);
   const [userId, setUserId] = useState(''); // This should be set when user is created or logged in
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -215,10 +215,6 @@ const ProfileOnboarding = ({
       // If no existing user found, create a new one
       console.log('No existing user found with this bio, creating new user...');
       
-      // Generate a user ID
-      const newUserId = `user_${Date.now()}`;
-      setUserId(newUserId);
-      
       // Prepare user data
       const userData = {
         email: `${name.toLowerCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}@series.placeholder`,
@@ -227,20 +223,17 @@ const ProfileOnboarding = ({
           last: name.split(' ').slice(1).join(' ') || 'User'
         },
         bio: description,
-        connections: connections.filter(conn => conn && conn.trim() !== '' && !conn.includes('PLACEHOLDER')),
-        location: userLocation,
-        age: userAge,
         onboarding: {
           completed: false,
           currentStep: 'initial'
         },
-        userId: newUserId
       };
       
       // Create a new userData object with the profilePic property
       // Use the processed image URL if available, otherwise use the default
-      const profilePicToUse = processedImageUrl || 
-                            (profilePic !== initialProfilePic ? profilePic : initialProfilePic);
+      const profilePicToUse = processedImageId 
+        ? processedImageId  // Just use the ID, the full URL will be constructed on the backend
+        : (profilePic !== initialProfilePic ? profilePic : initialProfilePic);
       
       const userDataWithProfilePic = {
         ...userData,
@@ -255,33 +248,7 @@ const ProfileOnboarding = ({
       }
       
       console.log('Sending user data to API...');
-      
-      // If we have a processed image URL, we need to update the user's profile with it
-      if (processedImageUrl) {
-        try {
-          console.log('Updating user profile with processed image...');
-          const updateResponse = await fetch('https://series-api-202642739529.us-central1.run.app/api/update-profile-pic', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-              user_id: userData.userId,
-              image_url: processedImageUrl
-            })
-          });
-          
-          if (!updateResponse.ok) {
-            const error = await updateResponse.json().catch(() => ({}));
-            console.error('Failed to update profile picture:', error);
-            // Continue with user creation even if profile pic update fails
-          } else {
-            console.log('Profile picture updated successfully');
-          }
-        } catch (error) {
-          console.error('Error updating profile picture:', error);
-          // Continue with user creation even if profile pic update fails
-        }
-      }
-      
+
       // Make API call to create user
       const response = await fetch('https://series-api-202642739529.us-central1.run.app/api/users', {
         method: 'POST',
@@ -309,6 +276,32 @@ const ProfileOnboarding = ({
       
       const result = await response.json();
       console.log('User created successfully:', result);
+      
+      // If we have a processed image ID, we need to update the user's profile with it
+      if (processedImageId) {
+        try {
+          console.log('Updating user profile with processed image ID:', processedImageId);
+          const updateResponse = await fetch('https://series-api-202642739529.us-central1.run.app/api/users/update-profile-pic', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              user_id: result.userId,
+              image_url: processedImageId  // Just send the ID, not the full URL
+            })
+          });
+          
+          if (!updateResponse.ok) {
+            const error = await updateResponse.json().catch(() => ({}));
+            console.error('Failed to update profile picture:', error);
+            // Continue with user creation even if profile pic update fails
+          } else {
+            console.log('Profile picture updated successfully');
+          }
+        } catch (error) {
+          console.error('Error updating profile picture:', error);
+          // Continue with user creation even if profile pic update fails
+        }
+      }
       
       // Call the search endpoint to generate embeddings and archetypes
       try {
@@ -398,8 +391,7 @@ const ProfileOnboarding = ({
     // Create a local URL for the image to display in the UI
     const localImageUrl = URL.createObjectURL(file);
     setProfilePic(localImageUrl);
-    setProfileImageFile(file);
-    console.log('Profile picture selected locally:', localImageUrl);
+    setIsUploading(true);
     
     try {
       // Upload the image to the server for processing
@@ -412,50 +404,51 @@ const ProfileOnboarding = ({
         body: formData,
       });
       
+      const result = await response.json();
+      
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
         console.error('Upload error:', {
           status: response.status,
           statusText: response.statusText,
-          error: errorData
+          error: result
         });
         
         let errorMessage = 'Failed to upload image';
         if (response.status === 422) {
           errorMessage = 'Invalid image format. Please try another image.';
-        } else if (errorData.detail) {
-          errorMessage = Array.isArray(errorData.detail) 
-            ? errorData.detail.map((e: any) => e.msg || e.message).join(', ')
-            : errorData.detail;
+        } else if (result.error) {
+          errorMessage = result.error;
         }
         
         throw new Error(errorMessage);
       }
       
-      const result = await response.json();
       console.log('Image upload successful:', result);
       
-      // Save the processed image URL for later use
+      // Save the processed image ID for later use
       if (result.success && result.image_url) {
-        setProcessedImageUrl(result.image_url);
+        // The image_url is now a GridFS file ID
+        setProcessedImageId(result.image_url);
+        
+        // Store the image ID and update the profile pic with the direct URL
+        setProcessedImageId(result.image_url);
+        const fileUrl = `https://series-api-202642739529.us-central1.run.app/api/users/files/${result.image_url}`;
+        setProfilePic(fileUrl);
       }
       
     } catch (error) {
       console.error('Error uploading image:', error);
-      showError('Failed to upload image. Please try again.');
+      showError(error instanceof Error ? error.message : 'Failed to upload image. Please try again.');
       // Revert to default image on error
       setProfilePic(initialProfilePic);
-      setProfileImageFile(null);
-    }
-    
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
-
-
-
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 flex items-center justify-center">
