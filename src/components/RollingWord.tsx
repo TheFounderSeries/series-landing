@@ -1,88 +1,70 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from 'react';
 
-const words = [
-  "co-founder",
-  "investor",
-  "employer",
-  "hire",
-  "co-founder",
-  "motivator",
-  "coach",
-  "inspiration",
-  "biggest supporter",
-  "wingman",
-  "tutor",
-  "coder",
-  "teammate",
-  "big brother",
-  "mentor",
-  "life changer",
-  "life saver",
-  "best friend",
-  "___"
-];
+interface RollingWordProps {
+  words: string[];
+  typingSpeed?: number;
+  deletingSpeed?: number;
+  pauseBetweenWords?: number;
+}
 
-const TYPING_SPEED = 60; // milliseconds per character
-const WORD_DISPLAY_TIME = 2000; // how long to show completed word
-
-export const RollingWord = () => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [displayText, setDisplayText] = useState('');
-  const typingTimeout = useRef<NodeJS.Timeout | null>(null);
-  const wordTimeout = useRef<NodeJS.Timeout | null>(null);
-
-  const typeWord = useCallback((word: string) => {
-    let i = 0;
-    setDisplayText('');
-
-    const type = () => {
-      if (i < word.length) {
-        setDisplayText(word.slice(0, i + 1));
-        i++;
-        typingTimeout.current = setTimeout(type, TYPING_SPEED);
-      }
-    };
-
-    type();
-  }, []);
+export const RollingWord: React.FC<RollingWordProps> = ({
+  words = [],
+  typingSpeed = 100,
+  deletingSpeed = 50,
+  pauseBetweenWords = 1500,
+}) => {
+  const [displayText, setDisplayText] = useState('_');
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const [isTyping, setIsTyping] = useState(true);
 
   useEffect(() => {
-    const nextWord = () => {
-      const word = words[currentIndex];
-      typeWord(word);
-      
-      wordTimeout.current = setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % words.length);
-      }, WORD_DISPLAY_TIME);
-    };
+    if (words.length === 0) return;
+    
+    const currentWord = words[currentWordIndex];
+    let timeout: NodeJS.Timeout;
 
-    nextWord();
+    if (isTyping) {
+      // Typing effect
+      if (displayText.replace('_', '').length < currentWord.length) {
+        timeout = setTimeout(() => {
+          const newText = currentWord.substring(0, displayText.length) + '_';
+          setDisplayText(newText);
+        }, typingSpeed);
+      } else {
+        // Pause at the end of typing
+        timeout = setTimeout(() => {
+          setIsTyping(false);
+        }, pauseBetweenWords);
+      }
+    } else {
+      // Deleting effect
+      if (displayText.length > 1) { // Keep at least the underscore
+        timeout = setTimeout(() => {
+          setDisplayText(prev => prev.slice(0, -1));
+        }, deletingSpeed);
+      } else {
+        // Move to next word when done deleting
+        setCurrentWordIndex((currentWordIndex + 1) % words.length);
+        setIsTyping(true);
+      }
+    }
 
-    return () => {
-      if (typingTimeout.current) {
-        clearTimeout(typingTimeout.current);
-      }
-      if (wordTimeout.current) {
-        clearTimeout(wordTimeout.current);
-      }
-    };
-  }, [currentIndex, typeWord]);
+    return () => clearTimeout(timeout);
+  }, [displayText, currentWordIndex, isTyping, words, typingSpeed, deletingSpeed, pauseBetweenWords]);
+
+  // Calculate the width of the widest word to prevent layout shift
+  const maxWidth = Math.max(...words.map(word => word.length)) * 0.6; // Approximate width in rem
 
   return (
-    <div className="inline-block min-w-[180px] text-xl sm:text-2xl font-medium">
+    <span 
+      className="inline-block text-center"
+      style={{ 
+        minWidth: `${maxWidth}rem`,
+      }}
+    >
       {displayText}
-      <motion.div
-        animate={{ opacity: [1, 0] }}
-        transition={{
-          duration: 0.8,
-          repeat: Infinity,
-          repeatType: "reverse"
-        }}
-        className="inline-block"
-      >
-        _
-      </motion.div>
-    </div>
+    </span>
   );
 };
+
+export default RollingWord;
