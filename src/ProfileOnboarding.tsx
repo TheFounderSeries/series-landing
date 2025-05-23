@@ -1,10 +1,10 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useRef, ChangeEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MessageCircle from 'lucide-react/dist/esm/icons/message-circle';
 import User from 'lucide-react/dist/esm/icons/user';
 import Phone from 'lucide-react/dist/esm/icons/phone';
-import WelcomePage from './WelcomePage';
-import QuestionnaireOnboarding from './QuestionnaireOnboarding';
+import { useScreenSize } from './lib/useScreenSize';
 
 // Simple Card components since we can't import them
 const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
@@ -44,13 +44,15 @@ const ProfileOnboarding = ({
   location = '',
   age = 18
 }: ProfileOnboardingProps) => {
+  // Get screen size information
+  const { isMobile } = useScreenSize();
   const [name, setName] = useState(firstName + ' ' + lastName);
   const [description, setDescription] = useState(bio);
   const [connections, setConnections] = useState(initialConnections);
   const [userLocation, setUserLocation] = useState(location);
   const [userAge, setUserAge] = useState(age);
   const [isLoading, setIsLoading] = useState(false);
-  const [pageState, setPageState] = useState<'profile' | 'questionnaire' | 'welcome'>('profile');
+  const navigate = useNavigate();
   const [errors, setErrors] = useState<{name?: string; bio?: string; location?: string; age?: string}>({});
   const [profilePic, setProfilePic] = useState(initialProfilePic);
   const [isUploading, setIsUploading] = useState(false);
@@ -64,6 +66,9 @@ const ProfileOnboarding = ({
     exit: { opacity: 0, y: -20, transition: { duration: 0.5 } }
   };
   
+  // We now support mobile devices, so we don't need to show the small screen message
+  // Mobile-specific UI will be handled in the main component
+
   const fadeInUp = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0, transition: { duration: 0.6 } }
@@ -281,7 +286,11 @@ const ProfileOnboarding = ({
       
       const result = await response.json();
       console.log('User created successfully:', result);
+      console.log('User ID from API response:', result.userId);
+      
+      // Set the userId in state
       setUserId(result.userId);
+      console.log('User ID set in state:', userId);
       
       // If we have a processed image ID, we need to update the user's profile with it
       if (processedImageId) {
@@ -312,9 +321,17 @@ const ProfileOnboarding = ({
       // Search and archetype generation will be handled in the questionnaire step
       console.log('Proceeding to questionnaire - search will be handled there');
       
-      console.log("User ID: ", result.userId);
-      // Proceed directly to questionnaire page without loading
-      setPageState('questionnaire');
+      // Log the userId values before navigation
+      console.log("User ID from API result: ", result.userId);
+      console.log("User ID from state before navigation: ", userId);
+      
+      // IMPORTANT: There might be a timing issue with the state update
+      // Use result.userId directly for navigation to ensure the correct value is passed
+      const userIdToPass = result.userId || userId;
+      console.log("User ID being passed to questionnaire: ", userIdToPass);
+      
+      // Navigate to the questionnaire page
+      navigate('/join/2', { state: { bio: description, userId: userIdToPass } });
       
     } catch (error) {
       console.error('Error in handleButtonClick:', error);
@@ -322,10 +339,6 @@ const ProfileOnboarding = ({
       setIsLoading(false);
     }
   };
-  
-  if (pageState === 'questionnaire') {
-    return <QuestionnaireOnboarding bio={description} userId={userId} />;
-  }
 
   // Animation variants
   const container = {
@@ -443,7 +456,254 @@ const ProfileOnboarding = ({
         </div>
       </div>
       
-      <div className="w-full max-w-6xl mt-14 flex flex-col md:flex-row gap-8 relative">
+      {isMobile ? (
+        // Mobile layout
+        <div className="w-full max-w-md mt-10">
+          {/* Mobile form fields */}
+          <motion.div
+            className="space-y-5"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            {/* Name field */}
+            <div>
+              <label className="block text-lg font-medium text-gray-700 mb-1">Name:</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (errors.name) setErrors({...errors, name: undefined});
+                }}
+                className={`block w-full rounded-2xl border-2 ${errors.name ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
+                placeholder="John Doe"
+                disabled={isLoading}
+              />
+              {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
+            </div>
+            
+            {/* Profile Picture */}
+            <div>
+              <label className="block text-lg font-medium text-gray-700 mt-8 mb-1">Profile Picture:</label>
+              <div className="flex items-center w-full">
+                <div className="relative w-16 h-16 rounded-full overflow-hidden bg-gray-100 mr-3">
+                  <img 
+                    src={profilePic}
+                    alt="Profile"
+                    className="w-full h-full object-cover object-center"
+                  />
+                </div>
+                <label 
+                  htmlFor="mobile-profile-upload"
+                  className={`flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-full text-sm flex items-center justify-center ${isUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  {isUploading ? 'Uploading...' : 'Upload'}
+                </label>
+                <input
+                  id="mobile-profile-upload"
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoUpload}
+                  disabled={isLoading || isUploading}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-4 mt-8">
+              <div className="flex space-x-6">
+                  {/* Age field */}
+                <div className="flex flex-col w-1/4">
+                  <label className="block text-lg font-medium text-gray-700 mb-1">Age:</label>
+                  <div className="flex items-center">
+                    <span className="text-2xl mr-2">💳</span>
+                    <select
+                      value={userAge}
+                      onChange={(e) => {
+                        setUserAge(parseInt(e.target.value));
+                        if (errors.age) setErrors({...errors, age: undefined});
+                      }}
+                      className={`block w-full rounded-2xl border-2 border-gray-200 shadow-lg px-5 py-4 text-base text-gray-900 focus:border-gray-400 focus:ring-0 transition-all duration-200 appearance-none bg-white`}
+                      disabled={isLoading}
+                    >
+                      {Array.from({ length: 52 }, (_, i) => i + 14).map(age => (
+                        <option key={age} value={age}>{age}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {errors.age && <p className="mt-1 text-xs text-red-600">{errors.age}</p>}
+                </div>
+
+                {/* Location field */}
+                <div className="flex flex-col w-3/4">
+                  <label className="block text-lg font-medium text-gray-700 mb-1">Location:</label>
+                  <div className="relative flex items-center">
+                  <span className="text-2xl absolute left-2 top-1/2 transform -translate-y-1/2">📍</span>
+                  <input
+                    type="text"
+                    value={userLocation}
+                    onChange={(e) => {
+                      setUserLocation(e.target.value);
+                      if (errors.location) setErrors({...errors, location: undefined});
+                    }}
+                    className={`block w-full rounded-2xl border-2 border-gray-200 shadow-lg px-5 py-4 text-base text-gray-900 pl-12 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
+                    placeholder="New York, New York, USA"
+                    disabled={isLoading}
+                  />
+                  </div>
+                  {errors.location && <p className="mt-1 text-xs text-red-600">{errors.location}</p>}
+                </div>
+              </div>
+            </div>
+            
+            {/* Who you are field */}
+            <div>
+              <label className="block text-lg font-medium text-gray-700 mt-8 mb-1">Who you are and what you do:</label>
+              <textarea
+                rows={3}
+                value={description}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  if (errors.bio) setErrors(prev => ({ ...prev, bio: '' }));
+                }}
+                className={`block w-full rounded-2xl border-2 ${errors.bio ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200 resize-none`}
+                placeholder="Junior @UCLA building e-commerce platform for shoes"
+                disabled={isLoading}
+              />
+              {errors.bio && <p className="mt-1 text-xs text-red-600">{errors.bio}</p>}
+            </div>
+            
+            {/* Who you know field */}
+            <div className="space-y-2">
+              <label className="block text-lg font-medium text-gray-700 mt-8 mb-1">Who you know:</label>
+              <div className="space-y-2">
+                {connections.map((connection, index) => (
+                  <div key={index} className="relative">
+                    <textarea
+                      rows={2}
+                      value={connection}
+                      onChange={(e) => {
+                        const updatedConnections = [...connections];
+                        updatedConnections[index] = e.target.value;
+                        setConnections(updatedConnections);
+                      }}
+                      className={`block w-full rounded-2xl border-2 border-gray-200 shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200 resize-none`}
+                      placeholder={
+                        index === 0 ? "full-stack engineers at Series University Computer Society" :
+                        index === 1 ? "product management team at Innovative Corp" :
+                        "Professor Jarvis's group at Series University ML and AI Lab"
+                      }
+                      disabled={isLoading}
+                    />
+                    {connections.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updatedConnections = [...connections];
+                          updatedConnections.splice(index, 1);
+                          setConnections(updatedConnections);
+                        }}
+                        className="absolute right-3 top-3 text-gray-400 hover:text-red-500 transition-color"
+                        disabled={isLoading}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {connections.length < 3 && (
+                  <button
+                    type="button"
+                    onClick={() => setConnections([...connections, ''])}
+                    className="mt-2 flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                    disabled={isLoading}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Add another person
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {/* Next button */}
+            <div className="mt-12 pt-4 flex justify-center">
+              <AnimatePresence mode="wait">
+                {isLoading ? (
+                  <motion.div
+                    key="loading"
+                    className="fixed inset-0 flex items-center justify-center bg-white z-40"
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                  >
+                    <div className="flex items-center">
+                      <motion.span
+                        className="text-[12rem] font-bold leading-none inline-block relative"
+                        animate={{ 
+                          scale: [1, 1.1],
+                        }}
+                        transition={{ 
+                          duration: 3,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        S
+                      </motion.span>
+                      <motion.div
+                        className="w-20 h-4 bg-black/20 overflow-hidden ml-4 relative -bottom-12"
+                        initial={{ scaleX: 0 }}
+                        animate={{ 
+                          scaleX: 1,
+                          transformOrigin: 'left center',
+                        }}
+                        transition={{ 
+                          duration: 3,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <motion.div 
+                          className="h-full bg-black absolute top-0 left-0"
+                          initial={{ width: '0%' }}
+                          animate={{ width: '100%' }}
+                          transition={{ 
+                            duration: 3,
+                            ease: "easeInOut"
+                          }}
+                        />
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.button
+                    key="button"
+                    className={`${isLoading ? 'bg-gray-400' : 'bg-black hover:bg-black/80'} text-white rounded-full p-3 w-24 h-9 mb-10 inline-flex items-center justify-center transition-colors`}
+                    initial="initial"
+                    animate="animate"
+                    variants={fadeInUp}
+                    whileHover={!isLoading ? { scale: 1.05 } : {}}
+                    whileTap={!isLoading ? { scale: 0.95 } : {}}
+                    onClick={!isLoading ? handleButtonClick : undefined}
+                    disabled={isLoading}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        </div>
+      ) : (
+        // Desktop layout
+        <div className="w-full max-w-6xl mt-14 flex flex-col md:flex-row gap-8 relative">
         {/* Left side - Profile Card */}
         <motion.div 
           className="w-full md:w-96"
@@ -674,7 +934,7 @@ const ProfileOnboarding = ({
                         setErrors(prev => ({ ...prev, bio: '' }));
                       }
                     }}
-                    className={`block w-full rounded-2xl border-2 ${errors.bio ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
+                    className={`block w-full rounded-2xl border-2 ${errors.bio ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200 resize-none`}
                     placeholder="New Series user at Series University that's working on AI/ML projects in the Bay"
                     disabled={isLoading}
                   />
@@ -813,7 +1073,8 @@ const ProfileOnboarding = ({
             </div>
           </div>
         </motion.div>
-      </div>
+        </div>
+      )}
     </div>
   );
 };

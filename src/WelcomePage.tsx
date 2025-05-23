@@ -1,11 +1,9 @@
 import { motion } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 
-interface WelcomePageProps {
-  name?: string;
-  bio?: string;
-}
-
-const WelcomePage = ({ bio = 'I just joined Series!' }: WelcomePageProps) => {
+const WelcomePage = () => {
+  const location = useLocation();
+  const { bio = 'I just joined Series!' } = location.state as { bio: string } || {};
   // Animation variants
   const fadeIn = {
     initial: { opacity: 0, y: 20 },
