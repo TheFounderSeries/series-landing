@@ -28,15 +28,7 @@ const LandingPage = () => {
     exit: { opacity: 0, y: -20, transition: { duration: 0.5 } }
   };
   // List of potential serendipitous meetings
-  const meetingOptions = [
-    'meet your next cofounder',
-    'find your next investor',
-    'connect with your next collaborator',
-    ' advisor',
-    ' partner',
-    ' teammate',
-    ' friend'
-  ];
+  const meetingOptions = ["meet your next cofounder", "hire your first developer", "pitch your future investor", "discover your dream job", "create your Friday night", "meet your AI friend"];
 
   // Animation variants for the elements
   const fadeInUp = {
@@ -49,7 +41,10 @@ const LandingPage = () => {
     <div className="min-h-screen bg-white flex flex-col items-center justify-center relative">
       <AnimatePresence mode="wait">
         {isLoading ? (
-          <motion.div
+          <motion.a
+            href="https://www.linkedin.com/company/joinseries/"
+            target="_blank"
+            rel="noopener noreferrer"
             key="loading"
             className="fixed inset-0 flex items-center justify-center bg-white z-50"
             variants={slideVariants}
@@ -59,19 +54,12 @@ const LandingPage = () => {
           >
             <div className="flex items-center">
               <motion.span
-                className={`${isMobile ? 'text-[8rem]' : 'text-[12rem]'} font-bold leading-none inline-block relative`}
-                animate={{ 
-                  scale: [1, 1.1],
-                }}
-                transition={{ 
-                  duration: 3,
-                  ease: "easeInOut"
-                }}
+                className={`${isMobile ? 'text-[8rem]' : 'text-[10rem]'} font-bold leading-none inline-block relative`}
               >
                 S
               </motion.span>
               <motion.div
-                className={`${isMobile ? 'w-16 h-3' : 'w-20 h-4'} bg-black/20 overflow-hidden ml-4 relative -bottom-12`}
+                className={`${isMobile ? 'w-16 h-3' : 'w-20 h-4'} overflow-hidden ml-4 relative -bottom-12`}
                 initial={{ scaleX: 0 }}
                 animate={{ 
                   scaleX: 1,
@@ -93,7 +81,7 @@ const LandingPage = () => {
                 />
               </motion.div>
             </div>
-          </motion.div>
+          </motion.a>
         ) : (
           <>
             {/* Backer logos at top for mobile */}
@@ -156,14 +144,6 @@ const LandingPage = () => {
             {/* Backer icons at the bottom for desktop */}
             {!isMobile && (
               <div className="fixed bottom-4 left-0 right-0 px-8">
-                <motion.p 
-                  className="text-sm text-gray-200 mb-8 text-center font-bold tracking-wider uppercase"
-                  initial="initial"
-                  animate="animate"
-                  variants={fadeInUp}
-                >
-                  As seen on
-                </motion.p>
                 <div className="flex justify-between items-center w-full">
                   <img src="/images/9 3.png" alt="Backer 1" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
                   <img src="/images/10 4.png" alt="Backer 2" className="h-14 w-auto opacity-70 hover:opacity-100 transition-opacity" />

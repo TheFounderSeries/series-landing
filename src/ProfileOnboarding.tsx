@@ -1,9 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useRef, ChangeEvent } from 'react';
+import React, { useState, useRef, ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import MessageCircle from 'lucide-react/dist/esm/icons/message-circle';
-import User from 'lucide-react/dist/esm/icons/user';
-import Phone from 'lucide-react/dist/esm/icons/phone';
+import Share from 'lucide-react/dist/esm/icons/share';
+import Network from 'lucide-react/dist/esm/icons/network';
 import { useScreenSize } from './lib/useScreenSize';
 
 // Simple Card components since we can't import them
@@ -39,7 +38,7 @@ const ProfileOnboarding = ({
     '',
     ''
   ],
-  color = 'purple',
+  color = '',
   initialProfilePic = '/images/default-avatar.png',
   location = '',
   age = 18
@@ -53,7 +52,14 @@ const ProfileOnboarding = ({
   const [userAge, setUserAge] = useState(age);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const [errors, setErrors] = useState<{name?: string; bio?: string; location?: string; age?: string}>({});
+  const [errors, setErrors] = useState<{
+    name?: string;
+    bio?: string;
+    location?: string;
+    age?: string;
+    profilePic?: string;
+    connections?: string[];
+  }>({});
   const [profilePic, setProfilePic] = useState(initialProfilePic);
   const [isUploading, setIsUploading] = useState(false);
   const [processedImageId, setProcessedImageId] = useState<string | null>(null);
@@ -74,33 +80,169 @@ const ProfileOnboarding = ({
     animate: { opacity: 1, y: 0, transition: { duration: 0.6 } }
   };
   
-  const validateForm = () => {
-    const newErrors: {name?: string; bio?: string; location?: string; age?: string} = {};
+  const styles = `
+    /* Black selection styles */
+    select:focus, input:focus, textarea:focus {
+      border-color: #000 !important;
+      --tw-ring-color: rgba(0, 0, 0, 0.5) !important;
+      --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color) !important;
+      --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color) !important;
+      box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000) !important;
+    }
     
-    if (!name.trim()) {
+    /* Make sure radio buttons and checkboxes use black */
+    input[type="radio"]:checked {
+      background-color: #000 !important;
+      border-color: #000 !important;
+    }
+    
+    input[type="checkbox"]:checked {
+      background-color: #000 !important;
+      border-color: #000 !important;
+      background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e") !important;
+    }
+    
+    /* Style the select dropdown arrow to be black */
+    select {
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23000' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+      background-position: right 0.5rem center !important;
+      background-repeat: no-repeat !important;
+      background-size: 1.5em 1.5em !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    
+    /* Style for error states */
+    .error-border {
+      border-color: #ef4444 !important;
+    }
+    
+    .error-text {
+      color: #ef4444;
+      font-size: 0.75rem;
+      line-height: 1rem;
+      margin-top: 0.25rem;
+    }`;
+
+  const validateForm = (): boolean => {
+    console.log('--- Starting form validation ---');
+    const newErrors: {
+      name?: string;
+      bio?: string;
+      location?: string;
+      age?: string;
+      profilePic?: string;
+      connections?: string[];
+    } = {};
+    
+    console.log('Current connections state:', connections);
+    
+    // Name validation
+    const trimmedName = name.trim();
+    if (!trimmedName) {
       newErrors.name = 'Name is required';
+    } else if (trimmedName.length < 2) {
+      newErrors.name = 'Name must be at least 2 characters';
     }
     
-    if (!description.trim()) {
+    // Bio validation
+    const trimmedBio = description.trim();
+    if (!trimmedBio) {
       newErrors.bio = 'Bio is required';
+    } else if (trimmedBio.length < 10) {
+      newErrors.bio = 'Bio must be at least 10 characters';
     }
     
-    if (!userLocation.trim()) {
+    // Location validation
+    const trimmedLocation = userLocation.trim();
+    if (!trimmedLocation) {
       newErrors.location = 'Location is required';
+    } else if (trimmedLocation.length < 2) {
+      newErrors.location = 'Please enter a valid location';
     }
     
-    if (!userAge) {
+    // Age validation
+    if (userAge === undefined || userAge === null) {
       newErrors.age = 'Age is required';
+    } else if (isNaN(userAge) || userAge < 14 || userAge > 65) {
+      newErrors.age = 'Age must be between 14 and 65';
     }
     
-    setErrors(newErrors);
-    
-    // If validation passes but no profile picture has been uploaded, show a warning
-    if (Object.keys(newErrors).length === 0 && profilePic === initialProfilePic) {
-      showError('Consider uploading a profile picture before continuing');
+    // Profile picture validation
+    if (!profilePic) {
+      newErrors.profilePic = 'Profile picture is required';
     }
     
-    return Object.keys(newErrors).length === 0;
+    // Connections validation
+    console.log('Validating connections...');
+    console.log('Current connections:', connections);
+    
+    const validConnections = connections.filter(conn => conn && conn.trim().length > 0);
+    const invalidConnections: string[] = [];
+    
+    console.log('Valid connections found:', validConnections);
+    
+    // Check each connection and provide specific error messages
+    connections.forEach((conn, index) => {
+      console.log(`Validating connection ${index + 1}:`, conn);
+      if (!conn.trim()) {
+        console.log(`Connection ${index + 1} is empty`);
+        invalidConnections[index] = 'This connection is required';
+      } else if (conn.trim().length < 2) {
+        console.log(`Connection ${index + 1} is too short`);
+        invalidConnections[index] = 'Connection is too short';
+      } else {
+        console.log(`Connection ${index + 1} is valid`);
+        invalidConnections[index] = '';
+      }
+    });
+    
+    console.log('Invalid connections array:', invalidConnections);
+    
+    // Check for minimum number of connections
+    if (validConnections.length < 3) {
+      const missingCount = 3 - validConnections.length;
+      console.log(`Need ${missingCount} more valid connections`);
+      
+      // Add the general message to the first empty or invalid connection
+      let messageAdded = false;
+      const updatedInvalidConnections = [...invalidConnections];
+      
+      for (let i = 0; i < updatedInvalidConnections.length; i++) {
+        if (updatedInvalidConnections[i]) {
+          const message = ` (${missingCount} more connection${missingCount > 1 ? 's' : ''} needed)`;
+          updatedInvalidConnections[i] = updatedInvalidConnections[i] + (messageAdded ? '' : message);
+          messageAdded = true;
+          console.log(`Added missing connections message to connection ${i + 1}`);
+        }
+      }
+      
+      console.log('Updated invalid connections with missing count:', updatedInvalidConnections);
+      newErrors.connections = updatedInvalidConnections;
+    } else {
+      console.log('Enough valid connections, using individual validation errors');
+      const connection_result = invalidConnections.filter(conn => conn !== '');
+      if (connection_result.length > 0) {
+        newErrors.connections = connection_result;
+      }
+    }
+    
+    console.log('Final connections errors:', newErrors.connections);
+    
+    console.log('All validation errors:', newErrors);
+    
+    setErrors(prev => {
+      const updatedErrors = {
+        ...prev,
+        ...newErrors
+      };
+      console.log('Updated errors state:', updatedErrors);
+      return updatedErrors;
+    });
+    
+    const isValid = Object.keys(newErrors).length === 0;
+    console.log('Form is', isValid ? 'valid' : 'invalid');
+    return isValid;
   };
 
   const searchUsersByBio = async (bio: string) => {
@@ -356,15 +498,26 @@ const ProfileOnboarding = ({
     show: { opacity: 1, y: 0 }
   };
 
+  // Generate a random color once when the component mounts
+  const [isMounted, setIsMounted] = React.useState(false);
+  
+  React.useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+
+  const [backgroundColor, setBackgroundColor] = React.useState<string>('');
+  
+  React.useEffect(() => {
+    if (isMounted) {
+      const colors: string[] = ['#4ecdc4', '#95a5a6', '#ffd93d', '#ff6b6b'];
+      const randomIndex = Math.floor(Math.random() * colors.length);
+      setBackgroundColor(colors[randomIndex]);
+    }
+  }, [isMounted]); // Empty dependency array means this runs once on mount
+  
   const getBackgroundColor = (color: string) => {
-    const colors: { [key: string]: string } = {
-      gray: '#95a5a6',
-      teal: '#4ecdc4',
-      yellow: '#ffd93d',
-      purple: '#6c5ce7',
-      red: '#ff6b6b'
-    };
-    return colors[color] || '#95a5a6';
+    return backgroundColor || '#95a5a6'; // Default color if not set yet
   };
   
   // Handle photo upload
@@ -446,6 +599,17 @@ const ProfileOnboarding = ({
     }
   };
 
+  // Add the styles to the document head
+  React.useEffect(() => {
+    const styleElement = document.createElement('style');
+    styleElement.innerHTML = styles;
+    document.head.appendChild(styleElement);
+    
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 flex flex-col items-center justify-center relative">
       {/* Page Indicator - Outside main content so it stays visible during loading */}
@@ -477,7 +641,7 @@ const ProfileOnboarding = ({
                   if (errors.name) setErrors({...errors, name: undefined});
                 }}
                 className={`block w-full rounded-2xl border-2 ${errors.name ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
-                placeholder="John Doe"
+                placeholder="Zark Muckerberg"
                 disabled={isLoading}
               />
               {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
@@ -537,67 +701,98 @@ const ProfileOnboarding = ({
                 </div>
 
                 {/* Location field */}
-                <div className="flex flex-col w-3/4">
-                  <label className="block text-lg font-medium text-gray-700 mb-1">Location:</label>
-                  <div className="relative flex items-center">
-                  <span className="text-2xl absolute left-2 top-1/2 transform -translate-y-1/2">📍</span>
-                  <input
-                    type="text"
-                    value={userLocation}
-                    onChange={(e) => {
-                      setUserLocation(e.target.value);
-                      if (errors.location) setErrors({...errors, location: undefined});
-                    }}
-                    className={`block w-full rounded-2xl border-2 border-gray-200 shadow-lg px-5 py-4 text-base text-gray-900 pl-12 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
-                    placeholder="New York, New York, USA"
-                    disabled={isLoading}
-                  />
+                <div className="w-[65%]">
+                  <div className="flex items-center gap-2 mb-3">
+                    <label className="block text-2xl font-medium text-gray-900">Location</label>
                   </div>
-                  {errors.location && <p className="mt-1 text-xs text-red-600">{errors.location}</p>}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={userLocation}
+                      onChange={(e) => {
+                        setUserLocation(e.target.value);
+                        if (errors.location) {
+                          setErrors({...errors, location: undefined});
+                        }
+                      }}
+                      className={`block w-full rounded-2xl border-2 ${errors.location ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
+                      placeholder="New York, New York, USA"
+                      disabled={isLoading}
+                    />
+                    {errors.location && (
+                      <p className="mt-1 text-xs text-red-600">{errors.location}</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
             
             {/* Who you are field */}
-            <div>
-              <label className="block text-lg font-medium text-gray-700 mt-8 mb-1">Who you are and what you do:</label>
-              <textarea
-                rows={3}
-                value={description}
-                onChange={(e) => {
-                  setDescription(e.target.value);
-                  if (errors.bio) setErrors(prev => ({ ...prev, bio: '' }));
-                }}
-                className={`block w-full rounded-2xl border-2 ${errors.bio ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200 resize-none`}
-                placeholder="Junior @UCLA building e-commerce platform for shoes"
-                disabled={isLoading}
-              />
-              {errors.bio && <p className="mt-1 text-xs text-red-600">{errors.bio}</p>}
+            <div className="w-full">
+              <div className="flex items-center gap-2 mb-3">
+                <label className="block text-2xl font-medium text-gray-900">Who you are and what you do</label>
+              </div>
+              <div className="relative">
+                <textarea
+                  rows={3}
+                  value={description}
+                  onChange={(e) => {
+                    setDescription(e.target.value);
+                    if (errors.bio) {
+                      setErrors({...errors, bio: undefined});
+                    }
+                  }}
+                  className={`block w-full rounded-2xl border-2 ${errors.bio ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200 resize-none`}
+                  placeholder="Junior @UCLA building e-commerce platform for shoes"
+                  disabled={isLoading}
+                />
+                {errors.bio && (
+                  <p className="mt-1 text-xs text-red-600">{errors.bio}</p>
+                )}
+              </div>
             </div>
             
             {/* Who you know field */}
-            <div className="space-y-2">
-              <label className="block text-lg font-medium text-gray-700 mt-8 mb-1">Who you know:</label>
-              <div className="space-y-2">
+            <div className="w-full mt-8">
+              <div className="flex items-center gap-2 mb-3">
+                <label className="block text-2xl font-medium text-gray-900">Who you know</label>
+              </div>
+              <div className="space-y-4">
                 {connections.map((connection, index) => (
-                  <div key={index} className="relative">
-                    <textarea
-                      rows={2}
-                      value={connection}
-                      onChange={(e) => {
-                        const updatedConnections = [...connections];
-                        updatedConnections[index] = e.target.value;
-                        setConnections(updatedConnections);
-                      }}
-                      className={`block w-full rounded-2xl border-2 border-gray-200 shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200 resize-none`}
-                      placeholder={
-                        index === 0 ? "full-stack engineers at Series University Computer Society" :
-                        index === 1 ? "product management team at Innovative Corp" :
-                        "Professor Jarvis's group at Series University ML and AI Lab"
-                      }
-                      disabled={isLoading}
-                    />
-                    {connections.length > 1 && (
+                  <div key={index} className="w-full">
+                    <div className="relative">
+                      <textarea
+                        rows={2}
+                        value={connection}
+                        onChange={(e) => {
+                          const updatedConnections = [...connections];
+                          updatedConnections[index] = e.target.value;
+                          setConnections(updatedConnections);
+                          // Clear error for this connection when typing
+                          if (errors.connections?.[index]) {
+                            const newErrors = { ...errors };
+                            if (newErrors.connections) {
+                              newErrors.connections = [...newErrors.connections];
+                              newErrors.connections[index] = '';
+                              setErrors(newErrors);
+                            }
+                          }
+                        }}
+                        className={`block w-full rounded-2xl border-2 ${
+                          errors.connections?.[index] ? 'border-red-500' : 'border-gray-200'
+                        } shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200 resize-none`}
+                        placeholder={
+                          index === 0 ? "full-stack engineers at Series University Computer Society" :
+                          index === 1 ? "product management team at Innovative Corp" :
+                          "Professor Jarvis's group at Series University ML and AI Lab"
+                        }
+                        disabled={isLoading}
+                      />
+                      {errors.connections?.[index] && (
+                        <p className="mt-1 text-xs text-red-600">{errors.connections[index]}</p>
+                      )}
+                    </div>
+                    {connections.length > 3 && (
                       <button
                         type="button"
                         onClick={() => {
@@ -615,7 +810,7 @@ const ProfileOnboarding = ({
                     )}
                   </div>
                 ))}
-                {connections.length < 3 && (
+                {connections.length < 5 && (
                   <button
                     type="button"
                     onClick={() => setConnections([...connections, ''])}
@@ -650,7 +845,7 @@ const ProfileOnboarding = ({
                           scale: [1, 1.1],
                         }}
                         transition={{ 
-                          duration: 3,
+                          duration: 5,
                           ease: "easeInOut"
                         }}
                       >
@@ -664,7 +859,7 @@ const ProfileOnboarding = ({
                           transformOrigin: 'left center',
                         }}
                         transition={{ 
-                          duration: 3,
+                          duration: 5,
                           ease: "easeInOut"
                         }}
                       >
@@ -673,7 +868,7 @@ const ProfileOnboarding = ({
                           initial={{ width: '0%' }}
                           animate={{ width: '100%' }}
                           transition={{ 
-                            duration: 3,
+                            duration: 5,
                             ease: "easeInOut"
                           }}
                         />
@@ -723,16 +918,12 @@ const ProfileOnboarding = ({
               {/* Action buttons */}
               <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
                 <button className="bg-black/30 backdrop-blur-sm p-3 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-16">
-                  <MessageCircle size={20} className="text-white fill-current" />
-                  <span className="text-[10px] mt-1 text-white font-medium">message</span>
+                  <Share size={20} className="text-white" />
+                  <span className="text-[10px] mt-1 text-white font-medium">connect</span>
                 </button>
                 <button className="bg-black/30 backdrop-blur-sm p-3 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-16">
-                  <User size={20} className="text-white fill-current" />
+                  <Network size={20} className="text-white" />
                   <span className="text-[10px] mt-1 text-white font-medium">graph</span>
-                </button>
-                <button className="bg-black/30 backdrop-blur-sm p-3 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-16">
-                  <Phone size={20} className="text-white fill-current" />
-                  <span className="text-[10px] mt-1 text-white font-medium">call</span>
                 </button>
               </div>
             </div>
@@ -791,7 +982,7 @@ const ProfileOnboarding = ({
         
         {/* Right side - Form */}
         <motion.div 
-          className="flex-1 flex flex-col px-12 overflow-y-auto"
+          className="flex-1 flex flex-col px-12 overflow-hidden"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -816,7 +1007,7 @@ const ProfileOnboarding = ({
                         }
                       }}
                       className={`block w-full rounded-2xl border-2 ${errors.name ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
-                      placeholder="John Doe"
+                      placeholder="Zark Muckerberg"
                       disabled={isLoading}
                     />
                     {errors.name && (
@@ -880,11 +1071,11 @@ const ProfileOnboarding = ({
                       <option key={age} value={age}>{age}</option>
                     ))}
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5">
+                  {/* <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5">
                     <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                     </svg>
-                  </div>
+                  </div> */}
                   {errors.age && (
                     <p className="mt-1 text-xs text-red-600">{errors.age}</p>
                   )}
@@ -896,20 +1087,19 @@ const ProfileOnboarding = ({
                 <div className="flex items-center gap-2 mb-3">
                   <label className="block text-2xl font-medium text-gray-900">Location</label>
                 </div>
-                <div className="relative">
+                <div className="relative w-full">
                   <input
                     type="text"
                     value={userLocation}
                     onChange={(e) => {
                       setUserLocation(e.target.value);
-                      // Clear error when user starts typing
                       if (errors.location) {
                         setErrors({...errors, location: undefined});
                       }
                     }}
-                    className={`block w-full rounded-2xl border-2 border-gray-200 shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
-                    placeholder="New York, New York, US"
+                    placeholder="New York, New York, USA"
                     disabled={isLoading}
+                    className={`block w-full appearance-none rounded-2xl border-2 ${errors.location ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
                   />
                   {errors.location && (
                     <p className="mt-1 text-xs text-red-600">{errors.location}</p>
@@ -935,7 +1125,7 @@ const ProfileOnboarding = ({
                       }
                     }}
                     className={`block w-full rounded-2xl border-2 ${errors.bio ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200 resize-none`}
-                    placeholder="New Series user at Series University that's working on AI/ML projects in the Bay"
+                    placeholder="undergrad math major at Emory working on quant ML research while building in medtech"
                     disabled={isLoading}
                   />
                   {errors.bio && (
@@ -960,16 +1150,25 @@ const ProfileOnboarding = ({
                         const updatedConnections = [...connections];
                         updatedConnections[index] = e.target.value;
                         setConnections(updatedConnections);
+                        // Clear error for this connection when typing
+                        if (errors.connections?.[index]) {
+                          const newErrors = { ...errors };
+                          if (newErrors.connections) {
+                            newErrors.connections = [...newErrors.connections];
+                            newErrors.connections[index] = '';
+                            setErrors(newErrors);
+                          }
+                        }
                       }}
-                      className={`block w-full rounded-xl border-2 border-gray-200 shadow-lg px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
+                      className={`block w-full rounded-xl border-2 ${errors.connections?.[index] ? 'border-red-500' : 'border-gray-200'} shadow-lg px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
                       placeholder={
-                        index === 0 ? "full-stack engineers at Series University Computer Society" :
-                        index === 1 ? "product management team at Innovative Corp" :
-                        "Professor Jarvis's group at Series University ML and AI Lab"
+                        index === 0 ? "full-stack engineers based in Georgia" :
+                        index === 1 ? "college athletes from universities in New Jersey" :
+                        "the founders of Prod"
                       }
                       disabled={isLoading}
                     />
-                    {connections.length > 1 && (
+                    {connections.length > 2 && (
                       <button
                         type="button"
                         onClick={() => {
@@ -987,7 +1186,7 @@ const ProfileOnboarding = ({
                     )}
                   </div>
                 ))}
-                {connections.length < 3 && (
+                {connections.length < 5 && (
                   <button
                     type="button"
                     onClick={() => setConnections([...connections, ''])}
@@ -997,7 +1196,7 @@ const ProfileOnboarding = ({
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
-                    Add another person
+                    Add another group of people you know
                   </button>
                 )}
               </div>
@@ -1022,7 +1221,7 @@ const ProfileOnboarding = ({
                           scale: [1, 1.1],
                         }}
                         transition={{ 
-                          duration: 3,
+                          duration: 5,
                           ease: "easeInOut"
                         }}
                       >
@@ -1036,7 +1235,7 @@ const ProfileOnboarding = ({
                           transformOrigin: 'left center',
                         }}
                         transition={{ 
-                          duration: 3,
+                          duration: 5,
                           ease: "easeInOut"
                         }}
                       >
@@ -1045,7 +1244,7 @@ const ProfileOnboarding = ({
                           initial={{ width: '0%' }}
                           animate={{ width: '100%' }}
                           transition={{ 
-                            duration: 3,
+                            duration: 5,
                             ease: "easeInOut"
                           }}
                         />
@@ -1073,7 +1272,7 @@ const ProfileOnboarding = ({
             </div>
           </div>
         </motion.div>
-        </div>
+      </div>
       )}
     </div>
   );

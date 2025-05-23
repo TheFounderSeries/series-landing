@@ -215,9 +215,9 @@ const QuestionnaireOnboarding = () => {
             <div key={question.id} id={question.id} className={`${isMobile ? 'space-y-2' : 'space-y-4'}`}>
               <h2 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-medium text-center`}>
                 {question.text}
-                {!answers[question.id] && (
+                {/* {!answers[question.id] && (
                   <span className="ml-2 text-sm text-red-500 font-normal">*</span>
-                )}
+                )} */}
               </h2>
               
               <div className={`flex flex-wrap justify-center ${isMobile ? 'gap-2' : 'gap-16'}`}>
@@ -238,13 +238,13 @@ const QuestionnaireOnboarding = () => {
             </div>
           ))}
 
-          <div className="flex flex-col items-center mb-8">
+          {/* <div className="flex flex-col items-center mb-8">
             {!allQuestionsAnswered && (
               <div className="text-sm mt-4 text-red-500">
                 Please answer all questions to continue
               </div>
             )}
-          </div>
+          </div> */}
 
           <div className="flex justify-center">
             <AnimatePresence mode="wait">
@@ -259,19 +259,12 @@ const QuestionnaireOnboarding = () => {
               >
                 <div className="flex items-center">
                   <motion.span
-                    className="text-[12rem] font-bold leading-none inline-block relative"
-                    animate={{ 
-                      scale: [1, 1.1],
-                    }}
-                    transition={{ 
-                      duration: 3,
-                      ease: "easeInOut"
-                    }}
+                    className="text-[10rem] font-bold leading-none inline-block relative"
                   >
                     S
                   </motion.span>
                   <motion.div
-                    className="w-20 h-4 bg-black/20 overflow-hidden ml-4 relative -bottom-12"
+                    className="w-20 h-4 overflow-hidden ml-4 relative -bottom-12"
                     initial={{ scaleX: 0 }}
                     animate={{ 
                       scaleX: 1,

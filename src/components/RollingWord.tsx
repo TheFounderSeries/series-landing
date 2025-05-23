@@ -9,9 +9,9 @@ interface RollingWordProps {
 
 export const RollingWord: React.FC<RollingWordProps> = ({
   words = [],
-  typingSpeed = 100,
-  deletingSpeed = 50,
-  pauseBetweenWords = 1500,
+  typingSpeed = 60,
+  deletingSpeed = 20,
+  pauseBetweenWords = 1200,
 }) => {
   const [displayText, setDisplayText] = useState('_');
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
