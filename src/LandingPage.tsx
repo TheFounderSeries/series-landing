@@ -13,9 +13,9 @@ const LandingPage = () => {
   const handleButtonClick = () => {
     setIsLoading(true);
     
-    // After 3 seconds, navigate to the profile onboarding page
+    // After 3 seconds, navigate to the video player instead of directly to profile onboarding
     const timer = setTimeout(() => {
-      navigate('/join/1');
+      navigate('/join/intro');
       setIsLoading(false);
     }, 3000);
     

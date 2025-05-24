@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const WelcomePage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { bio = 'I just joined Series!' } = location.state as { bio: string } || {};
   // Animation variants
   const fadeIn = {
@@ -32,6 +33,7 @@ const WelcomePage = () => {
           
           <button 
             className="text-gray-500 py-3 px-8 text-lg rounded-full border border-gray-300 font-medium hover:bg-gray-50 transition-colors w-64"
+            onClick={() => navigate('/join/faq')}
           >
             Confused?
           </button>

@@ -4,6 +4,12 @@ declare module 'lucide-react/dist/esm/icons/arrow-right' {
   export default ArrowRight;
 }
 
+declare module 'lucide-react/dist/esm/icons/arrow-left' {
+  import { LucideIcon } from 'lucide-react';
+  const ArrowLeft: LucideIcon;
+  export default ArrowLeft;
+}
+
 declare module 'lucide-react/dist/esm/icons/message-circle' {
   import { LucideIcon } from 'lucide-react';
   const MessageCircle: LucideIcon;
