@@ -341,144 +341,145 @@ const ProfileOnboarding = ({
     if (!validateForm()) {
       console.log('Form validation failed');
       return;
-    }
-    
-    // Don't show loading screen when transitioning to questionnaire
-    // Just log the data and proceed
-    console.log('Starting user creation process...', {
-      name,
-      bio: description,
-      connections: connections.filter(conn => conn && conn.trim() !== '' && !conn.includes('PLACEHOLDER'))
-    });
-    
-    try {
-      // First, check if a user with this bio already exists
-      console.log('Checking for existing users with the same bio...');
-      const existingUsers = await searchUsersByBio(description);
-      
-      if (existingUsers && existingUsers.length > 0) {
-        console.log('Found existing user with the same bio:', existingUsers[0]);
-        showError('A user with this bio already exists. Please choose a different bio.');
-        setIsLoading(false);
-        return;
-      }
-      
-      // If no existing user found, create a new one
-      console.log('No existing user found with this bio, creating new user...');
-      
-      // Prepare user data
-      const userData = {
-        email: `${name.toLowerCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}@series.placeholder`,
-        name: {
-          first: name.split(' ')[0],
-          last: name.split(' ').slice(1).join(' ') || 'User'
-        },
-        groups: connections,
+    } else {
+      console.log('Form validation passed');
+      // Don't show loading screen when transitioning to questionnaire
+      // Just log the data and proceed
+      console.log('Starting user creation process...', {
+        name,
         bio: description,
-        onboarding: {
-          completed: false,
-          currentStep: 'initial'
-        },
-      };
-      
-      // Create a new userData object with the profilePic property
-      // Use the processed image URL if available, otherwise use the default
-      const profilePicToUse = processedImageId 
-        ? processedImageId  // Just use the ID, the full URL will be constructed on the backend
-        : (profilePic !== initialProfilePic ? profilePic : initialProfilePic);
-      
-      const userDataWithProfilePic = {
-        ...userData,
-        profilePic: profilePicToUse
-      };
-      
-      // Log whether we're using a custom uploaded image or the default
-      if (profilePicToUse && profilePicToUse !== initialProfilePic) {
-        console.log('Using processed profile picture from server');
-      } else {
-        console.log('Using default profile picture');
-      }
-      
-      console.log('Sending user data to API...');
-
-      // Make API call to create user
-      const response = await fetch('https://series-api-202642739529.us-central1.run.app/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userDataWithProfilePic)
+        connections: connections.filter(conn => conn && conn.trim() !== '' && !conn.includes('PLACEHOLDER'))
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('API Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData
-        });
+      try {
+        // First, check if a user with this bio already exists
+        console.log('Checking for existing users with the same bio...');
+        const existingUsers = await searchUsersByBio(description);
         
-        // If it's a duplicate error, show error message
-        if (response.status === 400 && errorData.detail?.includes('already exists')) {
-          showError('A user with this information already exists');
+        if (existingUsers && existingUsers.length > 0) {
+          console.log('Found existing user with the same bio:', existingUsers[0]);
+          showError('A user with this bio already exists. Please choose a different bio.');
           setIsLoading(false);
           return;
         }
         
-        throw new Error(`API request failed with status ${response.status}`);
-      }
-      
-      const result = await response.json();
-      console.log('User created successfully:', result);
-      console.log('User ID from API response:', result.userId);
-      
-      // Set the userId in state
-      setUserId(result.userId);
-      console.log('User ID set in state:', userId);
-      
-      // If we have a processed image ID, we need to update the user's profile with it
-      if (processedImageId) {
-        try {
-          console.log('Updating user profile with processed image ID:', processedImageId);
-          const updateResponse = await fetch('https://series-api-202642739529.us-central1.run.app/api/users/update-profile-pic', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-              user_id: userId,
-              image_url: processedImageId  // Just send the ID, not the full URL
-            })
+        // If no existing user found, create a new one
+        console.log('No existing user found with this bio, creating new user...');
+        
+        // Prepare user data
+        const userData = {
+          email: `${name.toLowerCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}@series.placeholder`,
+          name: {
+            first: name.split(' ')[0],
+            last: name.split(' ').slice(1).join(' ') || 'User'
+          },
+          groups: connections,
+          bio: description,
+          onboarding: {
+            completed: false,
+            currentStep: 'initial'
+          },
+        };
+        
+        // Create a new userData object with the profilePic property
+        // Use the processed image URL if available, otherwise use the default
+        const profilePicToUse = processedImageId 
+          ? processedImageId  // Just use the ID, the full URL will be constructed on the backend
+          : (profilePic !== initialProfilePic ? profilePic : initialProfilePic);
+        
+        const userDataWithProfilePic = {
+          ...userData,
+          profilePic: profilePicToUse
+        };
+        
+        // Log whether we're using a custom uploaded image or the default
+        if (profilePicToUse && profilePicToUse !== initialProfilePic) {
+          console.log('Using processed profile picture from server');
+        } else {
+          console.log('Using default profile picture');
+        }
+        
+        console.log('Sending user data to API...');
+
+        // Make API call to create user
+        const response = await fetch('https://series-api-202642739529.us-central1.run.app/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userDataWithProfilePic)
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('API Error:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorData
           });
           
-          if (!updateResponse.ok) {
-            const error = await updateResponse.json().catch(() => ({}));
-            console.error('Failed to update profile picture:', error);
-            // Continue with user creation even if profile pic update fails
-          } else {
-            console.log('Profile picture updated successfully');
+          // If it's a duplicate error, show error message
+          if (response.status === 400 && errorData.detail?.includes('already exists')) {
+            showError('A user with this information already exists');
+            setIsLoading(false);
+            return;
           }
-        } catch (error) {
-          console.error('Error updating profile picture:', error);
-          // Continue with user creation even if profile pic update fails
+          
+          throw new Error(`API request failed with status ${response.status}`);
         }
+        
+        const result = await response.json();
+        console.log('User created successfully:', result);
+        console.log('User ID from API response:', result.userId);
+        
+        // Set the userId in state
+        setUserId(result.userId);
+        console.log('User ID set in state:', userId);
+        
+        // If we have a processed image ID, we need to update the user's profile with it
+        if (processedImageId) {
+          try {
+            console.log('Updating user profile with processed image ID:', processedImageId);
+            const updateResponse = await fetch('https://series-api-202642739529.us-central1.run.app/api/users/update-profile-pic', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({
+                user_id: userId,
+                image_url: processedImageId  // Just send the ID, not the full URL
+              })
+            });
+            
+            if (!updateResponse.ok) {
+              const error = await updateResponse.json().catch(() => ({}));
+              console.error('Failed to update profile picture:', error);
+              // Continue with user creation even if profile pic update fails
+            } else {
+              console.log('Profile picture updated successfully');
+            }
+          } catch (error) {
+            console.error('Error updating profile picture:', error);
+            // Continue with user creation even if profile pic update fails
+          }
+        }
+        
+        // Search and archetype generation will be handled in the questionnaire step
+        console.log('Proceeding to questionnaire - search will be handled there');
+        
+        // Log the userId values before navigation
+        console.log("User ID from API result: ", result.userId);
+        console.log("User ID from state before navigation: ", userId);
+        
+        // IMPORTANT: There might be a timing issue with the state update
+        // Use result.userId directly for navigation to ensure the correct value is passed
+        const userIdToPass = result.userId || userId;
+        console.log("User ID being passed to questionnaire: ", userIdToPass);
+        
+        // Navigate to the questionnaire page
+        navigate('/join/2', { state: { bio: description, userId: userIdToPass } });
+        
+      } catch (error) {
+        console.error('Error in handleButtonClick:', error);
+        showError('An error occurred. Please try again.');
+        setIsLoading(false);
       }
-      
-      // Search and archetype generation will be handled in the questionnaire step
-      console.log('Proceeding to questionnaire - search will be handled there');
-      
-      // Log the userId values before navigation
-      console.log("User ID from API result: ", result.userId);
-      console.log("User ID from state before navigation: ", userId);
-      
-      // IMPORTANT: There might be a timing issue with the state update
-      // Use result.userId directly for navigation to ensure the correct value is passed
-      const userIdToPass = result.userId || userId;
-      console.log("User ID being passed to questionnaire: ", userIdToPass);
-      
-      // Navigate to the questionnaire page
-      navigate('/join/2', { state: { bio: description, userId: userIdToPass } });
-      
-    } catch (error) {
-      console.error('Error in handleButtonClick:', error);
-      showError('An error occurred. Please try again.');
-      setIsLoading(false);
     }
   };
 
