@@ -194,139 +194,148 @@ const QuestionnaireOnboarding = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white p-4 md:p-8 flex flex-col items-center justify-center relative overflow-hidden">
-      {/* Page Indicator - Outside main content so it stays visible during loading */}
-      <div className="absolute top-4 md:top-8 left-1/2 transform -translate-x-1/2 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-sm border border-gray-200 z-50">
-        <div className="flex items-center space-x-1.5 px-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
-          <div className="w-1.5 h-1.5 rounded-full bg-black"></div>
-        </div>
-      </div>
-      
-      <div className="w-full max-w-2xl relative">
-
-        <motion.div 
-          className={`${isMobile ? 'space-y-12' : 'space-y-16'} ${isMobile ? 'py-8' : 'py-10'}`}
-          initial="hidden"
-          animate="visible"
-          variants={fadeVariants}
-        >
-          {questions.map((question) => (
-            <div key={question.id} id={question.id} className={`${isMobile ? 'space-y-2' : 'space-y-4'}`}>
-              <h2 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-medium text-center`}>
-                {question.text}
-                {/* {!answers[question.id] && (
-                  <span className="ml-2 text-sm text-red-500 font-normal">*</span>
-                )} */}
-              </h2>
-              
-              <div className={`flex flex-wrap justify-center ${isMobile ? 'gap-2' : 'gap-16'}`}>
-                {question.options.map((option) => (
-                  <button
-                    key={option.id}
-                    onClick={() => handleOptionSelect(question.id, option.id)}
-                    className={`${isMobile ? 'px-4 py-2 text-sm' : 'px-6 py-3'} rounded-full border ${
-                      answers[question.id] === option.id 
-                        ? 'bg-black text-white border-black' 
-                        : 'bg-white text-black border-gray-200 hover:bg-gray-50'
-                    } transition-colors duration-200 ${isMobile ? 'min-w-[100px]' : 'min-w-[120px]'} text-center`}
-                  >
-                    {option.text}
-                  </button>
+    <div className="min-h-screen bg-white p-4 md:p-8 flex flex-col items-center relative overflow-hidden">
+      <div className="flex-1 flex items-center w-full">
+        <div className="w-full max-w-3xl mx-auto">
+          <div className="flex flex-col">
+            {/* Questions Section */}
+            <div className="mt-32 flex-1 flex flex-col justify-center">
+              <motion.div 
+                className={`${isMobile ? 'space-y-12' : 'space-y-16'}`}
+                initial="hidden"
+                animate="visible"
+                variants={fadeVariants}
+              >
+                {questions.map((question) => (
+                  <div key={question.id} id={question.id} className={`${isMobile ? 'space-y-2' : 'space-y-4'}`}>
+                    <h2 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-medium text-center`}>
+                      {question.text}
+                      {/* {!answers[question.id] && (
+                        <span className="ml-2 text-sm text-red-500 font-normal">*</span>
+                      )} */}
+                    </h2>
+                    
+                    <div className={`flex flex-wrap justify-center ${isMobile ? 'gap-2' : 'gap-16'}`}>
+                      {question.options.map((option) => (
+                        <button
+                          key={option.id}
+                          onClick={() => handleOptionSelect(question.id, option.id)}
+                          className={`${isMobile ? 'px-4 py-2 text-sm' : 'px-6 py-3'} rounded-full border ${
+                            answers[question.id] === option.id 
+                              ? 'bg-gray-700 text-white border-gray-700' 
+                              : 'bg-white text-black border-gray-200 hover:bg-gray-50'
+                          } transition-colors duration-200 ${isMobile ? 'min-w-[100px]' : 'min-w-[120px]'} text-center`}
+                        >
+                          {option.text}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 ))}
-              </div>
+              </motion.div>
             </div>
-          ))}
 
-          {/* <div className="flex flex-col items-center mb-8">
-            {!allQuestionsAnswered && (
-              <div className="text-sm mt-4 text-red-500">
-                Please answer all questions to continue
-              </div>
-            )}
-          </div> */}
-
-          <div className="flex justify-center">
-            <AnimatePresence mode="wait">
-              {isLoading && (
-                <motion.div
-                  key="loading"
-                  className="fixed inset-0 flex items-center justify-center bg-white z-40"
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                >
-                  <div className="flex items-center">
-                    <motion.span
-                      className="text-[10rem] font-bold leading-none inline-block relative"
-                    >
-                      S
-                    </motion.span>
-                    <motion.div
-                      className="w-20 h-4 overflow-hidden ml-4 relative -bottom-12"
-                      initial={{ scaleX: 0 }}
-                      animate={{ 
-                        scaleX: 1,
-                        transformOrigin: 'left center',
-                      }}
-                      transition={{ 
-                        duration: 3,
-                        ease: "easeInOut"
-                      }}
-                    >
-                      <motion.div 
-                        className="h-full bg-black absolute top-0 left-0"
-                        initial={{ width: '0%' }}
-                        animate={{ width: '100%' }}
+            {/* Submit Button Section */}
+            <div className="mt-32 mb-16 flex justify-center">
+              <AnimatePresence mode="wait">
+                {isLoading && (
+                  <motion.div
+                    key="loading"
+                    className="fixed inset-0 flex items-center justify-center bg-white z-40"
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                  >
+                    <div className="flex items-center">
+                      <motion.span
+                        className="text-[10rem] font-bold leading-none inline-block relative"
+                      >
+                        S
+                      </motion.span>
+                      <motion.div
+                        className="w-20 h-4 overflow-hidden ml-4 relative -bottom-12"
+                        initial={{ scaleX: 0 }}
+                        animate={{ 
+                          scaleX: 1,
+                          transformOrigin: 'left center',
+                        }}
                         transition={{ 
                           duration: 3,
                           ease: "easeInOut"
                         }}
-                      />
-                    </motion.div>
-                  </div>
-                </motion.div>
-              )}
-              <motion.button
-                key="button"
-                className={`${
-                  isLoading 
-                    ? 'bg-gray-400' 
-                    : allQuestionsAnswered 
-                      ? 'bg-black hover:bg-black/80' 
-                      : 'bg-gray-300'
-                } text-white rounded-full ${
-                  isMobile ? 'p-2 w-20 h-8' : 'p-3 w-24 h-9'
-                } mb-10 inline-flex items-center justify-center transition-colors relative group`}
-                initial="initial"
-                animate="animate"
-                variants={fadeInUp}
-                whileHover={!isLoading && allQuestionsAnswered ? { scale: 1.05 } : {}}
-                whileTap={!isLoading && allQuestionsAnswered ? { scale: 0.95 } : {}}
-                onClick={!isLoading && allQuestionsAnswered ? handleNext : undefined}
-                disabled={isLoading || !allQuestionsAnswered}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </motion.button>
-            </AnimatePresence>
-          </div>
-        </motion.div>
+                      >
+                        <motion.div 
+                          className="h-full bg-black absolute top-0 left-0"
+                          initial={{ width: '0%' }}
+                          animate={{ width: '100%' }}
+                          transition={{ 
+                            duration: 3,
+                            ease: "easeInOut"
+                          }}
+                        />
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                )}
+                <motion.button
+                  key="button"
+                  className={`${
+                    isLoading 
+                      ? 'bg-gray-400' 
+                      : allQuestionsAnswered 
+                        ? 'bg-black hover:bg-black/80' 
+                        : 'bg-gray-300'
+                  } text-white rounded-full ${
+                    isMobile ? 'p-2 w-20 h-8' : 'p-3 w-24 h-9'
+                  } inline-flex items-center justify-center transition-colors relative group`}
+                  initial="initial"
+                  animate="animate"
+                  variants={fadeInUp}
+                  whileHover={!isLoading && allQuestionsAnswered ? { scale: 1.05 } : {}}
+                  whileTap={!isLoading && allQuestionsAnswered ? { scale: 0.95 } : {}}
+                  onClick={!isLoading && allQuestionsAnswered ? handleNext : undefined}
+                  disabled={isLoading || !allQuestionsAnswered}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </motion.button>
+              </AnimatePresence>
+            </div>
 
-        <div className="flex items-center justify-center w-full mt-4">
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input 
-              type="checkbox" 
-              className="sr-only peer"
-              checked={enhanceWithAI}
-              onChange={() => setEnhanceWithAI(!enhanceWithAI)}
-              id="ai-toggle"
-            />
-            <div className="w-11 h-6 bg-white-100 rounded-full peer dark:bg-gray-400 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-100 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-100 peer-checked:bg-black"></div>
-            <span className="ms-3 text-sm font-medium text-gray-900 whitespace-nowrap">Agree to enhancing profile with AI</span>
-          </label>
+            {/* AI Toggle Section */}
+            <motion.div 
+              className="mt-44 mb-8 flex items-center justify-center w-full"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ 
+                delay: 0.2,
+                duration: 0.5,
+                ease: "easeOut"
+              }}
+            >
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer"
+                  checked={enhanceWithAI}
+                  onChange={() => setEnhanceWithAI(!enhanceWithAI)}
+                  id="ai-toggle"
+                />
+                <motion.div 
+                  className="w-11 h-6 bg-white-100 rounded-full peer dark:bg-gray-400 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-100 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-100 peer-checked:bg-black"
+                  whileTap={{ scale: 0.95 }}
+                />
+                <motion.span 
+                  className="ms-3 text-sm font-medium text-gray-900 whitespace-nowrap"
+                  whileHover={{ scale: 1.02 }}
+                >
+                  Agree to enhancing profile with AI
+                </motion.span>
+              </label>
+            </motion.div>
+          </div>
         </div>
       </div>
     </div>

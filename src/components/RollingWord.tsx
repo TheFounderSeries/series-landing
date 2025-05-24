@@ -5,17 +5,20 @@ interface RollingWordProps {
   typingSpeed?: number;
   deletingSpeed?: number;
   pauseBetweenWords?: number;
+  pauseAtEnd?: number;
 }
 
 export const RollingWord: React.FC<RollingWordProps> = ({
   words = [],
-  typingSpeed = 60,
-  deletingSpeed = 20,
-  pauseBetweenWords = 1200,
+  typingSpeed = 70,
+  deletingSpeed = 30,
+  pauseBetweenWords = 1500,
+  pauseAtEnd = 6000,
 }) => {
   const [displayText, setDisplayText] = useState('_');
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [isTyping, setIsTyping] = useState(true);
+  const [pauseBeforeDelete, setPauseBeforeDelete] = useState(false);
 
   useEffect(() => {
     if (words.length === 0) return;
@@ -31,11 +34,16 @@ export const RollingWord: React.FC<RollingWordProps> = ({
           setDisplayText(newText);
         }, typingSpeed);
       } else {
-        // Pause at the end of typing
-        timeout = setTimeout(() => {
-          setIsTyping(false);
-        }, pauseBetweenWords);
+        // When typing is complete, always pause before deleting
+        setPauseBeforeDelete(true);
+        setIsTyping(false);
       }
+    } else if (pauseBeforeDelete) {
+      // Wait for the pause before starting to delete
+      const pauseTime = currentWordIndex === words.length - 1 ? pauseAtEnd : pauseBetweenWords;
+      timeout = setTimeout(() => {
+        setPauseBeforeDelete(false);
+      }, pauseTime);
     } else {
       // Deleting effect
       if (displayText.length > 1) { // Keep at least the underscore
@@ -43,14 +51,15 @@ export const RollingWord: React.FC<RollingWordProps> = ({
           setDisplayText(prev => prev.slice(0, -1));
         }, deletingSpeed);
       } else {
-        // Move to next word when done deleting
-        setCurrentWordIndex((currentWordIndex + 1) % words.length);
+        // Move to next word
+        const nextIndex = (currentWordIndex + 1) % words.length;
+        setCurrentWordIndex(nextIndex);
         setIsTyping(true);
       }
     }
 
     return () => clearTimeout(timeout);
-  }, [displayText, currentWordIndex, isTyping, words, typingSpeed, deletingSpeed, pauseBetweenWords]);
+  }, [displayText, currentWordIndex, isTyping, words, typingSpeed, deletingSpeed, pauseBetweenWords, pauseAtEnd, pauseBeforeDelete]);
 
   // Calculate the width of the widest word to prevent layout shift
   const maxWidth = Math.max(...words.map(word => word.length)) * 0.6; // Approximate width in rem

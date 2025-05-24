@@ -143,17 +143,32 @@ const LandingPage = () => {
             
             {/* Backer icons at the bottom for desktop */}
             {!isMobile && (
-              <div className="fixed bottom-4 left-0 right-0 px-8">
+              <div className="fixed bottom-9 left-0 right-0 px-8">
                 <div className="flex justify-between items-center w-full">
-                  <img src="/images/9 3.png" alt="Backer 1" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
-                  <img src="/images/10 4.png" alt="Backer 2" className="h-14 w-auto opacity-70 hover:opacity-100 transition-opacity" />
-                  <img src="/images/9 1.png" alt="Backer 3" className="h-16 w-auto opacity-70 hover:opacity-100 transition-opacity" />
-                  <img src="/images/keyboard_arrow_down.png" alt="Divider" className="h-8 w-auto opacity-50" />
-                  <img src="/images/10 1.png" alt="Backer 4" className="h-14 w-auto opacity-70 hover:opacity-100 transition-opacity" />
-                  <img src="/images/keyboard_arrow_down.png" alt="Divider" className="h-8 w-auto opacity-50" />
-                  <img src="/images/9 2.png" alt="Backer 5" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
-                  <img src="/images/11 1.png" alt="Backer 6" className="h-16 w-auto opacity-70 hover:opacity-100 transition-opacity" />
-                  <img src="/images/10 3.png" alt="Backer 7" className="h-14 w-auto opacity-70 hover:opacity-100 transition-opacity" />
+                  <span className="text-center text-gray-200 text-lg font-medium">
+                    AS SEEN ON:
+                  </span>
+                  <a href="https://www.forbes.com/sites/davidprosser/2025/04/04/how-two-yale-juniors-just-raised-31-million-for-their-social-network/" target="_blank" rel="noopener noreferrer" className="transition-all hover:brightness-100">
+                    <img src="/images/9 3.png" alt="Backer 1" className="h-12 w-auto opacity-50 hover:opacity-100 transition-opacity" />
+                  </a>
+                  <a href="Coming soon!" className="transition-all hover:brightness-100">
+                    <img src="/images/10 4.png" alt="Backer 2" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
+                  </a>
+                  <a href="https://www.entrepreneur.com/starting-a-business/yale-students-raised-3m-in-14-days-for-anti-facebook/489578" target="_blank" rel="noopener noreferrer" className="transition-all hover:brightness-100">
+                    <img src="/images/9 1.png" alt="Backer 3" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
+                  </a>
+                  <a href="https://www.instagram.com/complex/p/DIQBHDpOWzm/?api=stake%E3%80%90GB77.CC%E3%80%91.aviu&hl=af&img_index=2" target="_blank" rel="noopener noreferrer" className="transition-all hover:brightness-100">
+                    <img src="/images/10 1.png" alt="Backer 4" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
+                  </a>
+                  <a href="https://www.businessinsider.com/pitch-deck-series-gen-z-professional-network-ai-texting-2025-4" target="_blank" rel="noopener noreferrer" className="transition-all hover:brightness-100">
+                    <img src="/images/9 2.png" alt="Backer 5" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
+                  </a>
+                  <a href="https://www.fox61.com/video/news/local/morning-show/yale-students-launch-series-social-network/520-07415f62-0362-460a-b229-9a8bb6f1f3f6" target="_blank" rel="noopener noreferrer" className="transition-all hover:brightness-100">
+                    <img src="/images/11 1.png" alt="Backer 6" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
+                  </a>
+                  <a href="https://finance.yahoo.com/news/yale-nathaneo-johnson-sean-hargrow-182342002.html" target="_blank" rel="noopener noreferrer" className="transition-all hover:brightness-100">
+                    <img src="/images/image 2372.png" alt="Backer 7" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
+                  </a>
                 </div>
               </div>
             )}

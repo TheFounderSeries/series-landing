@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import React, { useState, useRef, ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Share from 'lucide-react/dist/esm/icons/share';
+import Users from 'lucide-react/dist/esm/icons/users';
 import Network from 'lucide-react/dist/esm/icons/network';
 import { useScreenSize } from './lib/useScreenSize';
 
@@ -41,7 +41,7 @@ const ProfileOnboarding = ({
   color = '',
   initialProfilePic = '/images/default-avatar.png',
   location = '',
-  age = 18
+  age = undefined,
 }: ProfileOnboardingProps) => {
   // Get screen size information
   const { isMobile } = useScreenSize();
@@ -60,6 +60,10 @@ const ProfileOnboarding = ({
     profilePic?: string;
     connections?: string[];
   }>({});
+  
+  // Modal visibility states
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showGraphModal, setShowGraphModal] = useState(false);
   const [profilePic, setProfilePic] = useState(initialProfilePic);
   const [isUploading, setIsUploading] = useState(false);
   const [processedImageId, setProcessedImageId] = useState<string | null>(null);
@@ -154,12 +158,12 @@ const ProfileOnboarding = ({
     }
     
     // Location validation
-    const trimmedLocation = userLocation.trim();
-    if (!trimmedLocation) {
-      newErrors.location = 'Location is required';
-    } else if (trimmedLocation.length < 2) {
-      newErrors.location = 'Please enter a valid location';
-    }
+    // const trimmedLocation = userLocation.trim();
+    // if (!trimmedLocation) {
+    //   newErrors.location = 'Location is required';
+    // } else if (trimmedLocation.length < 2) {
+    //   newErrors.location = 'Please enter a valid location';
+    // }
     
     // Age validation
     if (userAge === undefined || userAge === null) {
@@ -169,7 +173,7 @@ const ProfileOnboarding = ({
     }
     
     // Profile picture validation
-    if (!profilePic) {
+    if (!profilePic || profilePic === initialProfilePic) {
       newErrors.profilePic = 'Profile picture is required';
     }
     
@@ -525,6 +529,11 @@ const ProfileOnboarding = ({
   const handlePhotoUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // Clear any existing profile picture error when a new file is selected
+    if (errors.profilePic) {
+      setErrors({...errors, profilePic: undefined});
+    }
 
     // Check if file is an image
     if (!file.type.startsWith('image/')) {
@@ -612,15 +621,15 @@ const ProfileOnboarding = ({
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8 flex flex-col items-center justify-center relative">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8 flex flex-col items-center justify-center relative overflow-auto">
       {/* Page Indicator - Outside main content so it stays visible during loading */}
-      <div className="absolute top-8 left-1/2 transform -translate-x-1/2 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-sm border border-gray-200 z-50">
+      {/* <div className="absolute top-8 left-1/2 transform -translate-x-1/2 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-sm border border-gray-200 z-50">
         <div className="flex items-center space-x-1.5 px-2">
           <div className="w-1.5 h-1.5 rounded-full bg-black"></div>
           <div className="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
         </div>
       </div>
-      
+       */}
       {isMobile ? (
         // Mobile layout
         <div className="w-full max-w-md mt-10">
@@ -633,16 +642,15 @@ const ProfileOnboarding = ({
           >
             {/* Name field */}
             <div>
-              <label className="block text-lg font-medium text-gray-700 mb-1">Name:</label>
+              <label className="block text-2xl font-medium text-gray-700 mb-1">Name:</label>
               <input
                 type="text"
-                value={name}
                 onChange={(e) => {
                   setName(e.target.value);
                   if (errors.name) setErrors({...errors, name: undefined});
                 }}
                 className={`block w-full rounded-2xl border-2 ${errors.name ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
-                placeholder="Zark Muckerberg"
+                placeholder="John Doe"
                 disabled={isLoading}
               />
               {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
@@ -650,7 +658,7 @@ const ProfileOnboarding = ({
             
             {/* Profile Picture */}
             <div>
-              <label className="block text-lg font-medium text-gray-700 mt-8 mb-1">Profile Picture:</label>
+              <label className={`block text-2xl font-medium text-gray-700 mb-1`}>Profile</label>
               <div className="flex items-center w-full">
                 <div className="relative w-16 h-16 rounded-full overflow-hidden bg-gray-100 mr-3">
                   <img 
@@ -661,7 +669,7 @@ const ProfileOnboarding = ({
                 </div>
                 <label 
                   htmlFor="mobile-profile-upload"
-                  className={`flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-full text-sm flex items-center justify-center ${isUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  className={`flex-1 ${errors.profilePic ? 'bg-red-100 border-2 border-red-500' : 'bg-gray-200 hover:bg-gray-300'} text-gray-700 px-3 py-2 rounded-full text-sm flex items-center justify-center ${isUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   {isUploading ? 'Uploading...' : 'Upload'}
                 </label>
@@ -681,18 +689,20 @@ const ProfileOnboarding = ({
               <div className="flex space-x-6">
                   {/* Age field */}
                 <div className="flex flex-col w-1/4">
-                  <label className="block text-lg font-medium text-gray-700 mb-1">Age:</label>
+                  <label className={`block text-2xl font-medium text-gray-900`}>Age</label>
                   <div className="flex items-center">
-                    <span className="text-2xl mr-2">💳</span>
                     <select
-                      value={userAge}
+                      defaultValue=""
                       onChange={(e) => {
                         setUserAge(parseInt(e.target.value));
-                        if (errors.age) setErrors({...errors, age: undefined});
+                        if (errors.age) {
+                          setErrors({ ...errors, age: undefined });
+                        }
                       }}
-                      className={`block w-full rounded-2xl border-2 border-gray-200 shadow-lg px-5 py-4 text-base text-gray-900 focus:border-gray-400 focus:ring-0 transition-all duration-200 appearance-none bg-white`}
+                      className={`block w-full appearance-none rounded-2xl border-2 ${errors.age ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
                       disabled={isLoading}
                     >
+                      <option value="" disabled>Select age</option>
                       {Array.from({ length: 52 }, (_, i) => i + 14).map(age => (
                         <option key={age} value={age}>{age}</option>
                       ))}
@@ -703,9 +713,7 @@ const ProfileOnboarding = ({
 
                 {/* Location field */}
                 <div className="w-[65%]">
-                  <div className="flex items-center gap-2 mb-3">
-                    <label className="block text-2xl font-medium text-gray-900">Location</label>
-                  </div>
+                  <label className="block text-2xl font-medium text-gray-900">Location</label>
                   <div className="relative">
                     <input
                       type="text"
@@ -744,7 +752,7 @@ const ProfileOnboarding = ({
                     }
                   }}
                   className={`block w-full rounded-2xl border-2 ${errors.bio ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200 resize-none`}
-                  placeholder="Junior @UCLA building e-commerce platform for shoes"
+                  placeholder="studying AI and machine learning @ UCLA and building in healthtech"
                   disabled={isLoading}
                 />
                 {errors.bio && (
@@ -783,9 +791,9 @@ const ProfileOnboarding = ({
                           errors.connections?.[index] ? 'border-red-500' : 'border-gray-200'
                         } shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200 resize-none`}
                         placeholder={
-                          index === 0 ? "full-stack engineers at Series University Computer Society" :
-                          index === 1 ? "product management team at Innovative Corp" :
-                          "Professor Jarvis's group at Series University ML and AI Lab"
+                          index === 0 ? "full-stack engineers based in Georgia" :
+                          index === 1 ? "college athletes from universities in New Jersey" :
+                          "the founders of Y Combinator"
                         }
                         disabled={isLoading}
                       />
@@ -899,15 +907,16 @@ const ProfileOnboarding = ({
         </div>
       ) : (
         // Desktop layout
-        <div className="w-full max-w-6xl mt-14 flex flex-col md:flex-row gap-8 relative">
+        <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8 relative h-[calc(100vh-120px)] max-h-screen overflow-auto">
         {/* Left side - Profile Card */}
         <motion.div 
-          className="w-full md:w-96"
+          className="w-full md:w-96 bg-gray-200 p-3 rounded-3xl flex flex-col h-fit"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          style={{ marginBottom: '2px' }}
         >
-          <div className="relative bg-white rounded-lg overflow-hidden shadow-sm">
+          <div className="relative bg-white rounded-3xl overflow-hidden shadow-sm flex-shrink-0">
             {/* Profile image */}
             <div className="relative w-full aspect-[3/4] bg-gray-100">
               <img 
@@ -918,15 +927,98 @@ const ProfileOnboarding = ({
               
               {/* Action buttons */}
               <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
-                <button className="bg-black/30 backdrop-blur-sm p-3 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-16">
-                  <Share size={20} className="text-white" />
-                  <span className="text-[10px] mt-1 text-white font-medium">connect</span>
-                </button>
-                <button className="bg-black/30 backdrop-blur-sm p-3 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-16">
-                  <Network size={20} className="text-white" />
-                  <span className="text-[10px] mt-1 text-white font-medium">graph</span>
-                </button>
+                <div className="relative">
+                  <button 
+                    className="bg-black/30 backdrop-blur-sm p-3 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-20"
+                    onClick={() => setShowJoinModal(true)}
+                  >
+                    <Users size={24} className="text-white fill-current" />
+                    <span className="text-[14px] mt-1 text-white font-medium font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight">join</span>
+                  </button>
+                </div>
+                <div className="relative">
+                  <button 
+                    className="bg-black/30 backdrop-blur-sm p-3 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-20"
+                    onClick={() => setShowGraphModal(true)}
+                  >
+                    <Network size={24} className="text-white" />
+                    <span className="text-[14px] mt-1 text-white font-medium font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight">graph</span>
+                  </button>
+                </div>
               </div>
+              
+              {/* Apple-style modals */}
+              <AnimatePresence>
+                {showJoinModal && (
+                  <motion.div 
+                    className="fixed inset-0 z-50 flex items-center justify-center shadow-lg"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    onClick={() => setShowJoinModal(false)}
+                  >
+                    <motion.div 
+                      className="absolute inset-0 bg-black/60"
+                      transition={{ duration: 0.3 }}
+                    />
+                    <motion.div 
+                      className="relative bg-white/95 backdrop-blur-md rounded-2xl py-4 px-2 max-w-xs w-[80%] mx-auto shadow-xl"
+                      initial={{ scale: 0.95, y: 10, opacity: 0 }}
+                      animate={{ scale: 1, y: 0, opacity: 1 }}
+                      exit={{ scale: 0.95, y: 10, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="text-center">
+                        <p className="text-lg font-semibold mb-2 font-['SF_Pro','SF_Pro',system-ui,sans-serif]">"Join" allows someone<br></br> not on Series to join an <br></br>existing groupchat</p>
+                        <hr className="border-t border-gray-200 w-full mt-4" />
+                        <button 
+                          className="w-full mt-2 text-center text-blue-500 font-medium text-lg font-['SF_Pro','SF_Pro',system-ui,sans-serif]"
+                          onClick={() => setShowJoinModal(false)}
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+                
+                {showGraphModal && (
+                  <motion.div 
+                    className="fixed inset-0 z-50 flex items-center justify-center shadow-lg"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    onClick={() => setShowGraphModal(false)}
+                  >
+                    <motion.div 
+                      className="absolute inset-0 bg-black/60"
+                      transition={{ duration: 0.3 }}
+                    />
+                    <motion.div 
+                      className="relative bg-white/95 backdrop-blur-md rounded-2xl py-4 px-2 max-w-xs w-[90%] mx-auto shadow-xl"
+                      initial={{ scale: 0.95, y: 10, opacity: 0 }}
+                      animate={{ scale: 1, y: 0, opacity: 1 }}
+                      exit={{ scale: 0.95, y: 10, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="text-center">
+                        <p className="text-lg font-semibold mb-2 font-['SF_Pro','SF_Pro',system-ui,sans-serif]">"Graph" predicts the <br></br>types of people in your <br></br>warm network</p>
+                        <hr className="border-t border-gray-200 w-full mt-4" />
+                        <button 
+                          className="w-full mt-2 text-center text-blue-500 font-medium text-lg font-['SF_Pro','SF_Pro',system-ui,sans-serif]"
+                          onClick={() => setShowGraphModal(false)}
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
           
@@ -935,7 +1027,7 @@ const ProfileOnboarding = ({
             variants={container}
             initial="hidden"
             animate="show"
-            className="mt-6"
+            className="mt-6 font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight"
           >
             {/* Name card */}
             <Card className="mb-4">
@@ -946,32 +1038,32 @@ const ProfileOnboarding = ({
                     className="h-10 w-10 rounded-full mr-3 flex-shrink-0"
                   />
                   <div>
-                    <h2 className="font-medium text-gray-900">{name}</h2>
+                    <h2 className="font-medium text-gray-900 font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight">{name}</h2>
                   </div>
                 </motion.div>
               </CardContent>
             </Card>
             
             {/* Bio card */}
-            <Card className="mb-6">
+            <Card className="mb-4">
               <CardContent className="p-6">
                 <motion.div variants={item}>
-                  <h3 className="font-medium text-sm text-gray-900 mb-2">Me</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
+                  <h3 className="font-medium text-sm mb-1 text-gray-900 font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight">Me</h3>
+                  <p className="text-sm text-gray-400 leading-relaxed font-['SF_Pro_Text','SF_Pro',system-ui,sans-serif] tracking-tight">{description}</p>
                 </motion.div>
               </CardContent>
             </Card>
             
             {/* Connections card */}
-            <Card>
-              <CardContent className="p-6">
+            <Card className="flex-shrink-0">
+              <CardContent className="p-6 pb-4 !mb-[-2px]">
                 <div className="flex-1">
-                  <h3 className="font-medium text-sm text-gray-900 mb-2">Who I Know</h3>
-                  <ul className="space-y-2">
+                  <h3 className="font-medium text-sm mb-1.5 text-gray-900 font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight">Who I Know</h3>
+                  <ul className="space-y-1">
                     {connections.map((connection, index) => (
                       <li key={index} className="flex">
-                        <span className="text-black-500 mr-2 mt-0.5 flex-shrink-0">•</span>
-                        <span className="text-sm mr-1 mt-1 text-gray-600 break-words flex-1">{connection}</span>
+                        <span className="text-xs text-gray mr-2 flex-shrink-0">.</span>
+                        <span className="text-sm mr-1 text-gray-400 break-words flex-1 font-['SF_Pro_Text','SF_Pro',system-ui,sans-serif] tracking-tight">{connection}</span>
                       </li>
                     ))}
                   </ul>
@@ -983,12 +1075,12 @@ const ProfileOnboarding = ({
         
         {/* Right side - Form */}
         <motion.div 
-          className="flex-1 flex flex-col px-12 overflow-hidden"
+          className="flex-1 flex flex-col px-12 overflow-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          <div className="max-w-xl mx-auto w-full space-y-8 flex-1 flex flex-col">
+          <div className="max-w-xl mx-auto w-full space-y-6 flex-1 flex flex-col">
             {/* Name and Picture on the same line */}
             <div className="mb-5">
               <div className="flex gap-8">
@@ -1008,7 +1100,7 @@ const ProfileOnboarding = ({
                         }
                       }}
                       className={`block w-full rounded-2xl border-2 ${errors.name ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
-                      placeholder="Zark Muckerberg"
+                      placeholder="John Doe"
                       disabled={isLoading}
                     />
                     {errors.name && (
@@ -1020,11 +1112,11 @@ const ProfileOnboarding = ({
                 {/* Profile Picture Upload Box - 35% width */}
                 <div className="w-[35%] flex flex-col">
                   <div className="flex items-center gap-2 mb-3">
-                    <label className="block text-2xl font-medium text-gray-900">Profile</label>
+                    <label className={`block text-2xl font-medium text-gray-900`}>Profile</label>
                   </div>
                   <label 
                     htmlFor="profile-photo-upload"
-                    className="group flex items-center justify-center h-[58px] bg-gray-300 hover:bg-gray-500 transition-colors cursor-pointer rounded-2xl shadow-lg"
+                    className={`group flex items-center justify-center h-[58px] ${errors.profilePic ? 'bg-red-100 border-2 border-red-500' : 'bg-gray-300 hover:bg-gray-500'} transition-colors cursor-pointer rounded-2xl shadow-lg`}
                     title="Upload new photo"
                   >
                     <div className="flex flex-col items-center">
@@ -1054,20 +1146,21 @@ const ProfileOnboarding = ({
               {/* Age field */}
               <div className="w-[25%]">
                 <div className="flex items-center gap-2 mb-3">
-                  <label className="block text-2xl font-medium text-gray-900">Age</label>
+                  <label className={`block text-2xl font-medium ${errors.age ? 'text-red-600' : 'text-gray-900'}`}>Age</label>
                 </div>
                 <div className="relative inline-block w-full">
                   <select
-                    value={userAge}
+                    defaultValue=""
                     onChange={(e) => {
                       setUserAge(parseInt(e.target.value));
                       if (errors.age) {
-                        setErrors({...errors, age: undefined});
+                        setErrors({ ...errors, age: undefined });
                       }
                     }}
-                    className={`block w-full appearance-none rounded-2xl border-2 border-gray-200 shadow-lg px-5 py-4 text-base text-gray-900 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
+                    className={`block w-full appearance-none rounded-2xl border-2 ${errors.age ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
                     disabled={isLoading}
                   >
+                    <option value="" disabled>Select age</option>
                     {Array.from({ length: 52 }, (_, i) => i + 14).map(age => (
                       <option key={age} value={age}>{age}</option>
                     ))}
@@ -1112,7 +1205,7 @@ const ProfileOnboarding = ({
             {/* Bio field */}
             <div className="space-y-2 mt-10">
               <div className="flex items-center gap-2 mb-1">
-                <label className="block text-2xl font-medium text-gray-900">Who you are and what you do:</label>
+                <label className="block text-2xl font-medium text-gray-900">Who you are and what you do</label>
               </div>
               <div className="relative">
                 <div className="relative">
@@ -1126,7 +1219,7 @@ const ProfileOnboarding = ({
                       }
                     }}
                     className={`block w-full rounded-2xl border-2 ${errors.bio ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200 resize-none`}
-                    placeholder="undergrad math major at Emory working on quant ML research while building in medtech"
+                    placeholder="studying AI and machine learning @ UCLA and building in healthtech"
                     disabled={isLoading}
                   />
                   {errors.bio && (
@@ -1139,7 +1232,7 @@ const ProfileOnboarding = ({
             {/* Connections field with add/remove buttons */}
             <div className="space-y-8 mt-8 mb-10">
               <div className="flex items-center gap-2">
-                <label className="block text-2xl font-medium text-gray-900">Who you know:</label>
+                <label className="block text-2xl font-medium text-gray-900">Who you know</label>
               </div>
               <div className="space-y-2">
                 {connections.map((connection, index) => (
