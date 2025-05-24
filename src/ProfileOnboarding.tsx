@@ -395,6 +395,7 @@ const ProfileOnboarding = ({
           ...userData,
           profilePic: profilePicToUse
         };
+        console.log(userDataWithProfilePic);
         
         // Log whether we're using a custom uploaded image or the default
         if (profilePicToUse && profilePicToUse !== initialProfilePic) {
@@ -403,10 +404,10 @@ const ProfileOnboarding = ({
           console.log('Using default profile picture');
         }
         
-        console.log('Sending user data to API...');
+        console.log('Sending user data to API...', userDataWithProfilePic);
 
         // Make API call to create user
-        const response = await fetch('https://series-api-202642739529.us-central1.run.app/api/users', {
+        const response = await fetch('http://localhost:8000/api/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(userDataWithProfilePic)
@@ -436,7 +437,6 @@ const ProfileOnboarding = ({
         
         // Set the userId in state
         setUserId(result.userId);
-        console.log('User ID set in state:', userId);
         
         // If we have a processed image ID, we need to update the user's profile with it
         if (processedImageId) {
@@ -446,8 +446,8 @@ const ProfileOnboarding = ({
               method: 'POST',
               headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
               body: new URLSearchParams({
-                user_id: userId,
-                image_url: processedImageId  // Just send the ID, not the full URL
+                user_id: result.userId,
+                image_url: `https://series-api-202642739529.us-central1.run.app/api/files/${processedImageId}`
               })
             });
             
