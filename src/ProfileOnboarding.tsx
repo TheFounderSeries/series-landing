@@ -129,7 +129,6 @@ const ProfileOnboarding = ({
     }`;
 
   const validateForm = (): boolean => {
-    console.log('--- Starting form validation ---');
     const newErrors: {
       name?: string;
       bio?: string;
@@ -139,7 +138,6 @@ const ProfileOnboarding = ({
       connections?: string[];
     } = {};
     
-    console.log('Current connections state:', connections);
     
     // Name validation
     const trimmedName = name.trim();
@@ -177,36 +175,24 @@ const ProfileOnboarding = ({
       newErrors.profilePic = 'Profile picture is required';
     }
     
-    // Connections validation
-    console.log('Validating connections...');
-    console.log('Current connections:', connections);
-    
     const validConnections = connections.filter(conn => conn && conn.trim().length > 0);
     const invalidConnections: string[] = [];
     
-    console.log('Valid connections found:', validConnections);
     
     // Check each connection and provide specific error messages
     connections.forEach((conn, index) => {
-      console.log(`Validating connection ${index + 1}:`, conn);
       if (!conn.trim()) {
-        console.log(`Connection ${index + 1} is empty`);
         invalidConnections[index] = 'This connection is required';
       } else if (conn.trim().length < 2) {
-        console.log(`Connection ${index + 1} is too short`);
         invalidConnections[index] = 'Connection is too short';
       } else {
-        console.log(`Connection ${index + 1} is valid`);
         invalidConnections[index] = '';
       }
     });
     
-    console.log('Invalid connections array:', invalidConnections);
-    
     // Check for minimum number of connections
     if (validConnections.length < 3) {
       const missingCount = 3 - validConnections.length;
-      console.log(`Need ${missingCount} more valid connections`);
       
       // Add the general message to the first empty or invalid connection
       let messageAdded = false;
@@ -217,35 +203,26 @@ const ProfileOnboarding = ({
           const message = ` (${missingCount} more connection${missingCount > 1 ? 's' : ''} needed)`;
           updatedInvalidConnections[i] = updatedInvalidConnections[i] + (messageAdded ? '' : message);
           messageAdded = true;
-          console.log(`Added missing connections message to connection ${i + 1}`);
         }
       }
       
-      console.log('Updated invalid connections with missing count:', updatedInvalidConnections);
       newErrors.connections = updatedInvalidConnections;
     } else {
-      console.log('Enough valid connections, using individual validation errors');
       const connection_result = invalidConnections.filter(conn => conn !== '');
       if (connection_result.length > 0) {
         newErrors.connections = connection_result;
       }
     }
     
-    console.log('Final connections errors:', newErrors.connections);
-    
-    console.log('All validation errors:', newErrors);
-    
     setErrors(prev => {
       const updatedErrors = {
         ...prev,
         ...newErrors
       };
-      console.log('Updated errors state:', updatedErrors);
       return updatedErrors;
     });
     
     const isValid = Object.keys(newErrors).length === 0;
-    console.log('Form is', isValid ? 'valid' : 'invalid');
     return isValid;
   };
 
@@ -256,15 +233,11 @@ const ProfileOnboarding = ({
       // Skip check for empty or default bio
       if (!trimmedBio || 
           trimmedBio === "I'm new to Series! Looking forward to connecting with people and exploring opportunities.") {
-        console.log('[Bio Check] Skipping check for empty or default bio');
         return [];
       }
       
-      console.log('[Bio Check] Checking if bio exists:', JSON.stringify(trimmedBio));
-      
       // Check if bio exists using the check-bio endpoint
       const url = `https://series-api-202642739529.us-central1.run.app/api/users/check-bio?bio=${encodeURIComponent(trimmedBio)}`;
-      console.log('[Bio Check] Making request to:', url);
       
       const response = await fetch(url, {
         headers: {
@@ -294,8 +267,6 @@ const ProfileOnboarding = ({
         fullResponse: result,
         timestamp: new Date().toISOString()
       };
-      
-      console.log('[Bio Check] Result:', JSON.stringify(logData, null, 2));
       
       // If bio exists, return a dummy user object, otherwise return empty array
       return result.exists ? [{ bio: trimmedBio }] : [];
@@ -346,29 +317,15 @@ const ProfileOnboarding = ({
       console.log('Form validation failed');
       return;
     } else {
-      console.log('Form validation passed');
-      // Don't show loading screen when transitioning to questionnaire
-      // Just log the data and proceed
-      console.log('Starting user creation process...', {
-        name,
-        bio: description,
-        connections: connections.filter(conn => conn && conn.trim() !== '' && !conn.includes('PLACEHOLDER'))
-      });
-      
       try {
         // First, check if a user with this bio already exists
-        console.log('Checking for existing users with the same bio...');
         const existingUsers = await searchUsersByBio(description);
         
         if (existingUsers && existingUsers.length > 0) {
-          console.log('Found existing user with the same bio:', existingUsers[0]);
           showError('A user with this bio already exists. Please choose a different bio.');
           setIsLoading(false);
           return;
         }
-        
-        // If no existing user found, create a new one
-        console.log('No existing user found with this bio, creating new user...');
         
         // Prepare user data
         const userData = {
@@ -395,17 +352,7 @@ const ProfileOnboarding = ({
           ...userData,
           profilePic: profilePicToUse
         };
-        console.log(userDataWithProfilePic);
         
-        // Log whether we're using a custom uploaded image or the default
-        if (profilePicToUse && profilePicToUse !== initialProfilePic) {
-          console.log('Using processed profile picture from server:', profilePicToUse);
-        } else {
-          console.log('Using default profile picture');
-        }
-        
-        console.log('Sending user data to API...', userDataWithProfilePic);
-
         // Make API call to create user
         const response = await fetch('http://localhost:8000/api/users', {
           method: 'POST',
@@ -432,8 +379,6 @@ const ProfileOnboarding = ({
         }
         
         const result = await response.json();
-        console.log('User created successfully:', result);
-        console.log('User ID from API response:', result.userId);
         
         // Set the userId in state
         setUserId(result.userId);
@@ -441,7 +386,6 @@ const ProfileOnboarding = ({
         // If we have a processed image ID, we need to update the user's profile with it
         if (processedImageId) {
           try {
-            console.log('Updating user profile with processed image ID:', processedImageId);
             const updateResponse = await fetch('https://series-api-202642739529.us-central1.run.app/api/users/update-profile-pic', {
               method: 'POST',
               headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -450,31 +394,15 @@ const ProfileOnboarding = ({
                 image_url: `https://series-api-202642739529.us-central1.run.app/api/files/${processedImageId}`
               })
             });
-            
-            if (!updateResponse.ok) {
-              const error = await updateResponse.json().catch(() => ({}));
-              console.error('Failed to update profile picture:', error);
-              // Continue with user creation even if profile pic update fails
-            } else {
-              console.log('Profile picture updated successfully');
-            }
           } catch (error) {
             console.error('Error updating profile picture:', error);
             // Continue with user creation even if profile pic update fails
           }
         }
         
-        // Search and archetype generation will be handled in the questionnaire step
-        console.log('Proceeding to questionnaire - search will be handled there');
-        
-        // Log the userId values before navigation
-        console.log("User ID from API result: ", result.userId);
-        console.log("User ID from state before navigation: ", userId);
-        
         // IMPORTANT: There might be a timing issue with the state update
         // Use result.userId directly for navigation to ensure the correct value is passed
         const userIdToPass = result.userId || userId;
-        console.log("User ID being passed to questionnaire: ", userIdToPass);
         
         // Navigate to the questionnaire page
         navigate('/join/2', { state: { bio: description, userId: userIdToPass } });
@@ -556,8 +484,6 @@ const ProfileOnboarding = ({
       // Upload the image to the server for processing
       const formData = new FormData();
       formData.append('file', file);
-      
-      console.log('Uploading image to server...');
       const response = await fetch('https://series-api-202642739529.us-central1.run.app/api/users/upload-photo', {
         method: 'POST',
         body: formData,
@@ -581,8 +507,6 @@ const ProfileOnboarding = ({
         
         throw new Error(errorMessage);
       }
-      
-      console.log('Image upload successful:', result);
       
       // Save the processed image ID for later use
       if (result.success && result.image_url) {
