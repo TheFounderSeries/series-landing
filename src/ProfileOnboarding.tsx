@@ -384,7 +384,7 @@ const ProfileOnboarding = ({
         // Create a new userData object with the profilePic property
         // Use the processed image URL if available, otherwise use the default
         const profilePicToUse = processedImageId 
-          ? processedImageId  // Just use the ID, the full URL will be constructed on the backend
+          ? `https://series-api-202642739529.us-central1.run.app/api/files/${processedImageId}`  // MongoDB GridFS endpoint
           : (profilePic !== initialProfilePic ? profilePic : initialProfilePic);
         
         const userDataWithProfilePic = {
@@ -394,7 +394,7 @@ const ProfileOnboarding = ({
         
         // Log whether we're using a custom uploaded image or the default
         if (profilePicToUse && profilePicToUse !== initialProfilePic) {
-          console.log('Using processed profile picture from server');
+          console.log('Using processed profile picture from server:', profilePicToUse);
         } else {
           console.log('Using default profile picture');
         }
