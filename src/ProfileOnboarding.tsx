@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import Users from 'lucide-react/dist/esm/icons/users';
 import Network from 'lucide-react/dist/esm/icons/network';
 import { useScreenSize } from './lib/useScreenSize';
+import whiteGraphURL from './assets/group_icon.svg';
+import groupIconURL from './assets/graph_icon.svg';
+
 
 // Simple Card components since we can't import them
 const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
@@ -853,20 +856,20 @@ const ProfileOnboarding = ({
               <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
                 <div className="relative">
                   <button 
-                    className="bg-black/30 backdrop-blur-sm p-3 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-20"
+                    className="bg-black/30 backdrop-blur-sm pl-4 pr-4 pb-1.5 pt-1.5 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-[70px]"
                     onClick={() => setShowJoinModal(true)}
                   >
-                    <Users size={24} className="text-white fill-current" />
-                    <span className="text-[14px] mt-1 text-white font-medium font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight">join</span>
+                    <img src={groupIconURL} alt="graph icon" width={54} height={45} />
+                    <span className="text-[14px] -mt-1 text-white font-medium font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight">graph</span>
                   </button>
                 </div>
                 <div className="relative">
                   <button 
-                    className="bg-black/30 backdrop-blur-sm p-3 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-20"
+                    className="bg-black/30 backdrop-blur-sm pl-4 pr-4 pb-1.5 pt-1.5 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-[68.5px]"
                     onClick={() => setShowGraphModal(true)}
                   >
-                    <Network size={24} className="text-white" />
-                    <span className="text-[14px] mt-1 text-white font-medium font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight">graph</span>
+                    <img src={whiteGraphURL} alt="graph icon" width={54} height={45} />
+                    <span className="text-[14px] -mt-1 text-white font-medium font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight">join</span>
                   </button>
                 </div>
               </div>
@@ -895,7 +898,7 @@ const ProfileOnboarding = ({
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="text-center">
-                        <p className="text-lg font-semibold mb-2 font-['SF_Pro','SF_Pro',system-ui,sans-serif]">"Join" allows someone<br></br> not on Series to join an <br></br>existing groupchat</p>
+                        <p className="text-lg font-semibold mb-2 font-['SF_Pro','SF_Pro',system-ui,sans-serif]">"Graph" predicts the <br></br>types of people in your <br></br>warm network</p>
                         <hr className="border-t border-gray-200 w-full mt-4" />
                         <button 
                           className="w-full mt-2 text-center text-blue-500 font-medium text-lg font-['SF_Pro','SF_Pro',system-ui,sans-serif]"
@@ -930,7 +933,7 @@ const ProfileOnboarding = ({
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="text-center">
-                        <p className="text-lg font-semibold mb-2 font-['SF_Pro','SF_Pro',system-ui,sans-serif]">"Graph" predicts the <br></br>types of people in your <br></br>warm network</p>
+                        <p className="text-lg font-semibold mb-2 font-['SF_Pro','SF_Pro',system-ui,sans-serif]">"Join" allows someone<br></br> not on Series to join an <br></br>existing groupchat</p>
                         <hr className="border-t border-gray-200 w-full mt-4" />
                         <button 
                           className="w-full mt-2 text-center text-blue-500 font-medium text-lg font-['SF_Pro','SF_Pro',system-ui,sans-serif]"
