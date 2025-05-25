@@ -69,7 +69,7 @@ const App = () => {
   const [currentSlide, setCurrentSlide] = useState(slides.WELCOME);
   const [scrollProgress, setScrollProgress] = useState(0);
   const videoSectionRef = useRef<HTMLDivElement>(null);
-  const [previousSlide, setPreviousSlide] = useState(null);
+  const [previousSlide, setPreviousSlide] = useState(slides.WELCOME);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [sessionId] = useState(() => uuidv4());
   const [answers, setAnswers] = useState<{
@@ -78,12 +78,17 @@ const App = () => {
     personality?: string;
     colorName?: string;
     eduEmail?: string;
-  }>({});
-  const [showSurvey, setShowSurvey] = useState(true);
+    colorCode?: string;
+  }>({
+    personality: 'Creative',
+    colorCode: '#4ECDC4',
+    colorName: 'Teal'
+  });
+  const [showSurvey, setShowSurvey] = useState(false);
   const [copied, setCopied] = useState(false);
   const [matchingWords, setMatchingWords] = useState(['transcend', 'cultivate']);
   const [selectedColor, setSelectedColor] = useState('#4ECDC4');
-  const [showConfetti, setShowConfetti] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(true);
   const [shouldShatter, setShouldShatter] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
@@ -114,7 +119,7 @@ const App = () => {
 
   useEffect(() => {
     if (answers.personality) {
-      const colorMap = {
+      const colorMap: { [key: string]: string } = {
         'Passionate': '#FF6B6B',
         'Creative': '#4ECDC4',
         'Optimistic': '#FFD93D',
@@ -163,26 +168,38 @@ const App = () => {
   };
 
   const handleNext = () => {
-    setShouldShatter(true);
-    
-    setTimeout(() => {
-      const slideOrder = Object.values(slides);
-      const currentIndex = slideOrder.indexOf(currentSlide);
-      if (currentIndex < slideOrder.length - 1) {
-        setPreviousSlide(currentSlide);
-        setCurrentSlide(slideOrder[currentIndex + 1]);
-      }
-    }, 1000);
+    if (currentSlide === slides.WELCOME) {
+      // Skip directly to the final page when clicking next from welcome
+      setShouldShatter(true);
+      setTimeout(() => {
+        setPreviousSlide(slides.WELCOME);
+        setCurrentSlide(slides.MEET_VERA);
+      }, 500);
+    } else {
+      // Original behavior for other cases
+      setShouldShatter(true);
+      setTimeout(() => {
+        const slideOrder = Object.values(slides);
+        const currentIndex = slideOrder.indexOf(currentSlide);
+        if (currentIndex < slideOrder.length - 1) {
+          setPreviousSlide(currentSlide);
+          setCurrentSlide(slideOrder[currentIndex + 1]);
+        }
+      }, 1000);
+    }
   };
 
   const handleBack = () => {
-    if (currentSlide === slides.MEET_VERA || currentSlide === slides.WELCOME) {
+    if (currentSlide === slides.MEET_VERA) {
       setCurrentSlide(slides.WELCOME); 
-      setPreviousSlide(null); 
+      setPreviousSlide(slides.WELCOME); 
+    } else if (currentSlide === slides.WELCOME) {
+      // Already at welcome, do nothing or handle as needed
+      return;
     } else if (previousSlide) { 
       if (previousSlide === slides.LOADING) {
         setCurrentSlide(slides.WELCOME);
-        setPreviousSlide(null);
+        setPreviousSlide(slides.WELCOME);
       } else if (previousSlide === slides.FINAL_LOADING) {
         setShowSurvey(true);
         setCurrentSlide(slides.SURVEY);
@@ -190,7 +207,7 @@ const App = () => {
       } else {
         setCurrentSlide(previousSlide);
         if (previousSlide === slides.WELCOME) {
-          setPreviousSlide(null);
+          setPreviousSlide(slides.WELCOME);
         } else if (previousSlide === slides.SURVEY) {
           setPreviousSlide(slides.WELCOME);
         }
