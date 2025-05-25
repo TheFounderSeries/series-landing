@@ -1,8 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import React, { useState, useRef, ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Users from 'lucide-react/dist/esm/icons/users';
-import Network from 'lucide-react/dist/esm/icons/network';
 import { useScreenSize } from './lib/useScreenSize';
 import whiteGraphURL from './assets/group_icon.svg';
 import groupIconURL from './assets/graph_icon.svg';
@@ -856,7 +854,7 @@ const ProfileOnboarding = ({
               <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
                 <div className="relative">
                   <button 
-                    className="bg-black/30 backdrop-blur-sm pl-4 pr-4 pb-1.5 pt-1.5 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-[70px]"
+                    className="bg-black/30 backdrop-blur-sm pl-4 pr-4 pb-1.5 pt-2 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-[70px]"
                     onClick={() => setShowJoinModal(true)}
                   >
                     <img src={groupIconURL} alt="graph icon" width={54} height={45} />
@@ -865,7 +863,7 @@ const ProfileOnboarding = ({
                 </div>
                 <div className="relative">
                   <button 
-                    className="bg-black/30 backdrop-blur-sm pl-4 pr-4 pb-1.5 pt-1.5 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-[68.5px]"
+                    className="bg-black/30 backdrop-blur-sm pl-4 pr-4 pb-1.5 pt-2 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-[68.5px]"
                     onClick={() => setShowGraphModal(true)}
                   >
                     <img src={whiteGraphURL} alt="graph icon" width={54} height={45} />
