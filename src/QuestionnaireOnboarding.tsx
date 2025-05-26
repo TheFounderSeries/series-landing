@@ -262,7 +262,9 @@ const QuestionnaireOnboarding = () => {
                         }}
                         transition={{ 
                           duration: 3,
-                          ease: "easeInOut"
+                          ease: "easeInOut",
+                          repeat: Infinity,
+                          repeatType: "loop"
                         }}
                       >
                         <motion.div 
