@@ -835,7 +835,7 @@ const ProfileOnboarding = ({
         <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8 relative h-[calc(100vh-120px)] max-h-screen overflow-auto">
         {/* Left side - Profile Card */}
         <motion.div 
-          className="w-full md:w-96 bg-gray-200 p-3 rounded-3xl flex flex-col h-fit"
+          className="w-full md:w-96 bg-gray-200 p-0 rounded-3xl flex flex-col h-fit"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -843,11 +843,11 @@ const ProfileOnboarding = ({
         >
           <div className="relative bg-white rounded-3xl overflow-hidden shadow-sm flex-shrink-0">
             {/* Profile image */}
-            <div className="relative w-full aspect-[3/4] bg-gray-100">
+            <div className="relative w-full aspect-[3/4] bg-gray-100 rounded-3xl">
               <img 
                 src={profilePic}
                 alt={`${firstName} ${lastName}`}
-                className="w-full h-full object-cover object-center filter"
+                className="w-full h-full object-cover object-center filter rounded-3xl"
               />
               
               {/* Action buttons */}
@@ -952,7 +952,7 @@ const ProfileOnboarding = ({
             variants={container}
             initial="hidden"
             animate="show"
-            className="mt-6 font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight"
+            className="mt-6 px-3 pb-3 font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight"
           >
             {/* Name card */}
             <Card className="mb-4">

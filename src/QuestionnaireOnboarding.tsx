@@ -215,7 +215,7 @@ const QuestionnaireOnboarding = () => {
                       )} */}
                     </h2>
                     
-                    <div className={`flex flex-wrap justify-center ${isMobile ? 'gap-2' : 'gap-16'}`}>
+                    <div className={`flex flex-wrap justify-center ${isMobile ? 'gap-2' : 'gap-16'} pt-8`}>
                       {question.options.map((option) => (
                         <button
                           key={option.id}
@@ -306,7 +306,7 @@ const QuestionnaireOnboarding = () => {
 
             {/* AI Toggle Section */}
             <motion.div 
-              className="mt-44 mb-8 flex items-center justify-center w-full"
+              className="mt-16 mb-24 flex items-center justify-center w-full"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ 
