@@ -337,10 +337,8 @@ const ProfileOnboarding = ({
           },
           groups: connections,
           bio: description,
-          onboarding: {
-            completed: false,
-            currentStep: 'initial'
-          },
+          location: userLocation,
+          age: userAge
         };
         
         // Create a new userData object with the profilePic property
@@ -547,14 +545,6 @@ const ProfileOnboarding = ({
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 flex flex-col items-center justify-center relative overflow-auto">
-      {/* Page Indicator - Outside main content so it stays visible during loading */}
-      {/* <div className="absolute top-8 left-1/2 transform -translate-x-1/2 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-sm border border-gray-200 z-50">
-        <div className="flex items-center space-x-1.5 px-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-black"></div>
-          <div className="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
-        </div>
-      </div>
-       */}
       {isMobile ? (
         // Mobile layout
         <div className="w-full max-w-md mt-10">

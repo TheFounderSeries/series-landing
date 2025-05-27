@@ -20,8 +20,8 @@ const QuestionnaireOnboarding = () => {
   const { bio = '', userId = '' } = location.state as { bio: string; userId: string } || {};
   
   // Debug logging for userId
-  console.log('QuestionnaireOnboarding - Received userId:', userId);
-  console.log('QuestionnaireOnboarding - Received location state:', location.state);
+  // console.log('QuestionnaireOnboarding - Received userId:', userId);
+  // console.log('QuestionnaireOnboarding - Received location state:', location.state);
   
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [enhanceWithAI, setEnhanceWithAI] = useState(true);
@@ -85,48 +85,48 @@ const QuestionnaireOnboarding = () => {
   const saveAnswersToDatabase = async () => {
     try {
       // Debug logging for userId before API calls
-      console.log('saveAnswersToDatabase - Using userId:', userId);
+      // console.log('saveAnswersToDatabase - Using userId:', userId);
       if (!userId) {
         console.warn('WARNING: userId is empty or undefined!');
       }
       
       // Debug logging for userId before API calls
-      console.log('saveAnswersToDatabase - Using userId:', userId);
+      // console.log('saveAnswersToDatabase - Using userId:', userId);
       if (!userId) {
         console.warn('WARNING: userId is empty or undefined!');
       }
       
-      // Convert answers to the format needed for the database
-      const pcaData = {
-        pca_successful: answers['successful_people'] === 'never_going' ? 0 : 
-                        answers['successful_people'] === 'likely' ? 1 : 2,
-        pca_goals: answers['career_status'] === 'behind' ? 0 : 
-                   answers['career_status'] === 'satisfied' ? 1 : 2,
-        pca_meet: answers['meeting_people'] === 'not_ready' ? 0 : 
-                  answers['meeting_people'] === 'curious' ? 1 : 2,
-        enhance_with_ai: enhanceWithAI
-      };
+      // // Convert answers to the format needed for the database
+      // const pcaData = {
+      //   pca_successful: answers['successful_people'] === 'never_going' ? 0 : 
+      //                   answers['successful_people'] === 'likely' ? 1 : 2,
+      //   pca_goals: answers['career_status'] === 'behind' ? 0 : 
+      //              answers['career_status'] === 'satisfied' ? 1 : 2,
+      //   pca_meet: answers['meeting_people'] === 'not_ready' ? 0 : 
+      //             answers['meeting_people'] === 'curious' ? 1 : 2,
+      //   enhance_with_ai: enhanceWithAI
+      // };
       
-      console.log('Saving questionnaire answers to database:', pcaData);
+      // console.log('Saving questionnaire answers to database:', pcaData);
       
-      // Save PCA data to the database
-      const pcaResponse = await fetch('https://series-api-202642739529.us-central1.run.app/api/users/update-pca', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: userId,
-          pcaData: pcaData
-        }),
-      });
+      // // Save PCA data to the database
+      // const pcaResponse = await fetch('https://series-api-202642739529.us-central1.run.app/api/users/update-pca', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     userId: userId,
+      //     pcaData: pcaData
+      //   }),
+      // });
       
-      if (!pcaResponse.ok) {
-        console.error(`PCA update API error: ${pcaResponse.status}`);
-      } else {
-        const pcaResult = await pcaResponse.json();
-        console.log('PCA update API response:', pcaResult);
-      }
+      // if (!pcaResponse.ok) {
+      //   console.error(`PCA update API error: ${pcaResponse.status}`);
+      // } else {
+      //   const pcaResult = await pcaResponse.json();
+      //   console.log('PCA update API response:', pcaResult);
+      // }
       
       // Trigger the search endpoint with the AI enhancement preference
       const searchResponse = await fetch(`https://series-api-202642739529.us-central1.run.app/api/users/${userId}/search?enhance_with_ai=${enhanceWithAI}`, {
@@ -163,13 +163,13 @@ const QuestionnaireOnboarding = () => {
       setIsLoading(true);
       
       // Debug logging before saving answers
-      console.log('handleNext - Before saving answers, userId:', userId);
+      // console.log('handleNext - Before saving answers, userId:', userId);
       
       // Save answers to database
       await saveAnswersToDatabase();
       
       // Debug logging for navigation
-      console.log('handleNext - Navigating to complete page with bio:', bio);
+      // console.log('handleNext - Navigating to complete page with bio:', bio);
       
       // Simulate API delay
       setTimeout(() => {
