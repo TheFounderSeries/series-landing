@@ -193,6 +193,10 @@ const QuestionnaireOnboarding = () => {
     exit: { opacity: 0, y: -20, transition: { duration: 0.3 } }
   };
 
+  // Add state for age and location (mobile only)
+  const [age, setAge] = useState('');
+  const [userLocation, setUserLocation] = useState('');
+
   return (
     <div className="min-h-screen bg-white p-4 md:p-8 flex flex-col items-center relative overflow-hidden">
       <div className="flex-1 flex items-center w-full">
@@ -206,8 +210,8 @@ const QuestionnaireOnboarding = () => {
                 animate="visible"
                 variants={fadeVariants}
               >
-                {questions.map((question) => (
-                  <div key={question.id} id={question.id} className={`${isMobile ? 'space-y-2' : 'space-y-4'}`}>
+                {questions.map((question, idx) => (
+                  <div key={question.id} id={question.id} className={`${isMobile ? 'space-y-2 max-w-md mx-auto' : 'space-y-4'}`}>
                     <h2 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-medium text-center`}>
                       {question.text}
                       {/* {!answers[question.id] && (
@@ -230,6 +234,36 @@ const QuestionnaireOnboarding = () => {
                         </button>
                       ))}
                     </div>
+                    {/* Age and Location fields for mobile, after last question's options */}
+                    {isMobile && idx === questions.length - 1 && (
+                      <div className="flex gap-6 pt-10 max-w-md mx-auto">
+                        {/* Age */}
+                        <div className="flex flex-col" style={{ width: 90, paddingLeft: 4 }}>
+                          <label className="block text-base font-medium text-gray-900 mb-1 pl-1">Age:</label>
+                          <select
+                            value={age}
+                            onChange={e => setAge(e.target.value)}
+                            className="block rounded-full border-2 border-gray-200 shadow-lg px-4 h-8 text-sm text-gray-900 focus:border-gray-400 focus:ring-0 transition-all duration-200 w-4/5 pl-1"
+                          >
+                            <option value="" disabled hidden></option>
+                            {Array.from({ length: 52 }, (_, i) => i + 14).map(a => (
+                              <option key={a} value={a}>{a}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {/* Location */}
+                        <div className="flex flex-col flex-grow min-w-0" style={{ marginLeft: 10 }}>
+                          <label className="block text-base font-medium text-gray-900 mb-1">Location:</label>
+                          <input
+                            type="text"
+                            value={userLocation}
+                            onChange={e => setUserLocation(e.target.value)}
+                            className="block rounded-full border-2 border-gray-200 shadow-lg px-4 h-8 text-sm text-gray-900 focus:border-gray-400 focus:ring-0 transition-all duration-200 w-full"
+                            placeholder="New York, New York, USA"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </motion.div>
@@ -263,7 +297,7 @@ const QuestionnaireOnboarding = () => {
                         transition={{ 
                           duration: 3,
                           ease: "easeInOut",
-                          repeat: Infinity,
+                          repeat: Infinity, 
                           repeatType: "loop"
                         }}
                       >

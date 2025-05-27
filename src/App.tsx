@@ -16,7 +16,7 @@ const App = () => {
         <Route path="/join/faq" element={<ConfusedPage />} />
         <Route path="/join/1" element={<ProfileOnboarding />} />
         <Route path="/join/2" element={<QuestionnaireOnboarding />} />
-        <Route path="/join/complete" element={<WelcomePage />} />
+        <Route path="/join/complete" element={<WelcomePage />} /> 
         <Route path="/welcome" element={<ImsgVideo />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
