@@ -12,7 +12,7 @@ const App = () => {
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/join/intro" element={<VideoPlayer src="/loading_screen.mov" nextRoute="/join/1" />} />
+        <Route path="/join/intro" element={<VideoPlayer src = "" nextRoute="/join/1" />} />
         <Route path="/join/faq" element={<ConfusedPage />} />
         <Route path="/join/1" element={<ProfileOnboarding />} />
         <Route path="/join/2" element={<QuestionnaireOnboarding />} />

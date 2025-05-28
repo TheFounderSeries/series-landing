@@ -181,19 +181,22 @@ const ProfileOnboarding = ({
       newErrors.bio = 'Bio must be at least 30 characters';
     }
     
-    // Location validation
-    // const trimmedLocation = userLocation.trim();
-    // if (!trimmedLocation) {
-    //   newErrors.location = 'Location is required';
-    // } else if (trimmedLocation.length < 2) {
-    //   newErrors.location = 'Please enter a valid location';
-    // }
-    
-    // Age validation
-    if (userAge === undefined || userAge === null) {
-      newErrors.age = 'Age is required';
-    } else if (isNaN(userAge) || userAge < 14 || userAge > 65) {
-      newErrors.age = 'Age must be between 14 and 65';
+    // Only validate Age and Location on desktop
+    if (!isMobile) {
+      // Location validation
+      const trimmedLocation = userLocation.trim();
+      if (!trimmedLocation) {
+        newErrors.location = 'Location is required';
+      } else if (trimmedLocation.length < 2) {
+        newErrors.location = 'Please enter a valid location';
+      }
+      
+      // Age validation
+      if (userAge === undefined || userAge === null) {
+        newErrors.age = 'Age is required';
+      } else if (isNaN(userAge) || userAge < 14 || userAge > 65) {
+        newErrors.age = 'Age must be between 14 and 65';
+      }
     }
     
     // Profile picture validation
@@ -247,6 +250,8 @@ const ProfileOnboarding = ({
       };
       return updatedErrors;
     });
+
+    console.log("newErrors: ", newErrors)
     
     const isValid = Object.keys(newErrors).length === 0;
     return isValid;
@@ -338,9 +343,13 @@ const ProfileOnboarding = ({
   // Helper function to show errors
 
   const handleButtonClick = async () => {
+    // Set loading state at the beginning to prevent multiple clicks
+    setIsLoading(true);
+    
     // Validate form before submission
     if (!validateForm()) {
       console.log('Form validation failed');
+      setIsLoading(false); // Reset loading state if validation fails
       return;
     } else {
       try {
@@ -376,7 +385,8 @@ const ProfileOnboarding = ({
         
         const userDataWithProfilePic = {
           ...userData,
-          profilePic: profilePicToUse
+          profilePic: profilePicToUse,
+          color: backgroundColor // Add the background color to the user data
         };
         
         // Make API call to create user
@@ -412,7 +422,7 @@ const ProfileOnboarding = ({
         // If we have a processed image ID, we need to update the user's profile with it
         if (processedImageId) {
           try {
-            const updateResponse = await fetch('https://series-api-202642739529.us-central1.run.app/api/users/update-profile-pic', {
+            await fetch('https://series-api-202642739529.us-central1.run.app/api/users/update-profile-pic', {
               method: 'POST',
               headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
               body: new URLSearchParams({
@@ -430,8 +440,11 @@ const ProfileOnboarding = ({
         // Use result.userId directly for navigation to ensure the correct value is passed
         const userIdToPass = result.userId || userId;
         
-        // Navigate to the questionnaire page
-        navigate('/join/2', { state: { bio: description, userId: userIdToPass } });
+        // Wait a short time to show the loading screen before navigating
+        setTimeout(() => {
+          // Navigate to the questionnaire page
+          navigate('/join/2', { state: { bio: description, userId: userIdToPass } });
+        }, 2000); // 2 seconds delay to show loading screen
         
       } catch (error) {
         console.error('Error in handleButtonClick:', error);
@@ -613,35 +626,31 @@ const ProfileOnboarding = ({
                 zIndex: 1,
               }}
             >
-              {/* Profile image preview (mobile only) */}
-              {isMobile && profilePic !== initialProfilePic && (
+              {/* Profile image background */}
+              {(isMobile && profilePic === initialProfilePic) ? null : (
                 <img
                   src={profilePic}
-                  alt="Profile preview"
+                  alt={isMobile ? "" : "Profile background"}
                   style={{
-                    width: 90,
-                    height: 90,
-                    objectFit: 'cover',
-                    borderRadius: '50%',
-                    border: '2px solid #fff',
-                    boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)',
                     position: 'absolute',
-                    left: '50%',
-                    top: 24,
-                    transform: 'translateX(-50%)',
-                    zIndex: 3,
-                    background: '#fff',
+                    left: 0,
+                    top: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    zIndex: 1
                   }}
                 />
               )}
               {/* Upload button */}
-              <button
+              <label 
+                htmlFor="profile-photo-upload"
                 style={{
                   position: 'absolute',
                   left: '50%',
                   top: '32%',
                   transform: 'translate(-50%, -50%)',
-                  background: '#D9D9D9',
+                  background: errors.profilePic ? '#FEF2F2' : '#D9D9D9',
                   borderRadius: 24,
                   minWidth: 190,
                   height: 30,
@@ -652,18 +661,29 @@ const ProfileOnboarding = ({
                   fontWeight: 600,
                   fontSize: 13,
                   letterSpacing: 0.1,
-                  color: '#222',
+                  color: errors.profilePic ? '#ef4444' : '#222',
                   cursor: 'pointer',
                   zIndex: 2,
+                  border: errors.profilePic ? '2px solid #ef4444' : 'none',
+                  transition: 'all 0.2s',
                 }}
                 className={isMobile ? 'series-shadow series-upload' : ''}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{marginRight: 8}}>
-                  <path d="M12 16V6M12 6L7 11M12 6L17 11" stroke="#222" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <line x1="8" y1="18" x2="16" y2="18" stroke="#222" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M12 16V6M12 6L7 11M12 6L17 11" stroke={errors.profilePic ? "#ef4444" : "#222"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="8" y1="18" x2="16" y2="18" stroke={errors.profilePic ? "#ef4444" : "#222"} strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
                 Upload
-              </button>
+                <input
+                  id="profile-photo-upload"
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoUpload}
+                  disabled={isLoading}
+                />
+              </label>
 
               {/* Graph and Join buttons row */}
               <div
@@ -727,27 +747,49 @@ const ProfileOnboarding = ({
                   flexShrink: 0,
                 }}
               />
-              <input
-                type="text"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="John Stuart"
-                className={isMobile ? 'series-shadow series-placeholder' : ''}
-                style={{
-                  width: 300,
-                  height: 32,
-                  borderRadius: 8,
-                  fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
-                  fontWeight: 400,
-                  fontSize: 13,
-                  paddingLeft: 10,
-                  outline: 'none',
-                  color: '#222',
-                  transition: 'border 0.2s',
-                }}
-                onFocus={e => (e.target.style.borderWidth = '0.5px')}
-                onBlur={e => (e.target.style.borderWidth = '1px')}
-              />
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => {
+                    setName(e.target.value);
+                    // Clear error when user starts typing
+                    if (errors.name) {
+                      setErrors({...errors, name: undefined});
+                    }
+                  }}
+                  placeholder="John Stuart"
+                  className={`${isMobile ? 'series-shadow series-placeholder' : ''}`}
+                  style={{
+                    width: 300,
+                    height: 32,
+                    borderRadius: 8,
+                    fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
+                    fontWeight: 400,
+                    fontSize: 13,
+                    paddingLeft: 10,
+                    outline: 'none',
+                    color: '#222',
+                    transition: 'all 0.2s',
+                    border: errors.name ? '2px solid #ef4444' : '1px solid #ccc',
+                    backgroundColor: errors.name ? '#FEF2F2' : 'white',
+                  }}
+                  onFocus={e => {
+                    if (!errors.name) {
+                      e.target.style.borderWidth = '0.5px';
+                    }
+                  }}
+                  onBlur={e => {
+                    if (!errors.name) {
+                      e.target.style.borderWidth = '1px';
+                    }
+                  }}
+                  disabled={isLoading}
+                />
+                {errors.name && (
+                  <p className="mt-1 text-xs text-red-600 absolute">{errors.name}</p>
+                )}
+              </div>
             </div>
             {/* second White rectangle in the bottom half of the profile card */}
             <div
@@ -774,27 +816,49 @@ const ProfileOnboarding = ({
               }}
             >
               <span style={{ color: '#111', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Me</span>
-              <input
-                type="text"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                placeholder="student @Columbia building fintech startup"
-                className={isMobile ? 'series-shadow series-placeholder' : ''}
-                style={{
-                  width: 315,
-                  height: 32,
-                  borderRadius: 8,
-                  fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
-                  fontWeight: 400,
-                  fontSize: 13,
-                  paddingLeft: 10,
-                  outline: 'none',
-                  color: '#222',
-                  transition: 'border 0.2s',
-                }}
-                onFocus={e => (e.target.style.borderWidth = '0.5px')}
-                onBlur={e => (e.target.style.borderWidth = '1px')}
-              />
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  value={description}
+                  onChange={e => {
+                    setDescription(e.target.value);
+                    // Clear error when user starts typing
+                    if (errors.bio) {
+                      setErrors({...errors, bio: undefined});
+                    }
+                  }}
+                  placeholder="student @Columbia building fintech startup"
+                  className={`${isMobile ? 'series-shadow series-placeholder' : ''}`}
+                  style={{
+                    width: 315,
+                    height: 32,
+                    borderRadius: 8,
+                    fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
+                    fontWeight: 400,
+                    fontSize: 13,
+                    paddingLeft: 10,
+                    outline: 'none',
+                    color: '#222',
+                    transition: 'all 0.2s',
+                    border: errors.bio ? '2px solid #ef4444' : '1px solid #ccc',
+                    backgroundColor: errors.bio ? '#FEF2F2' : 'white',
+                  }}
+                  onFocus={e => {
+                    if (!errors.bio) {
+                      e.target.style.borderWidth = '0.5px';
+                    }
+                  }}
+                  onBlur={e => {
+                    if (!errors.bio) {
+                      e.target.style.borderWidth = '1px';
+                    }
+                  }}
+                  disabled={isLoading}
+                />
+                {errors.bio && (
+                  <p className="mt-1 text-xs text-red-600 absolute">{errors.bio}</p>
+                )}
+              </div>
             </div>
             {/*third White rectangle in the bottom half of the profile card */}
             <div
@@ -819,90 +883,209 @@ const ProfileOnboarding = ({
               }}
             >
               <span style={{ color: '#111', fontWeight: 600, fontSize: 13, marginBottom: 2 }}>Who I know</span>
-              <input  
-                type="text"
-                value={connections[0]}
-                onChange={e => setConnections([e.target.value, connections[1], connections[2]])}
-                placeholder="the founders of Prod"
-                className={isMobile ? 'series-shadow series-placeholder' : ''}
-                style={{
-                  width: 315,
-                  height: 28,
-                  borderRadius: 8,
-                  fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
-                  fontWeight: 400,
-                  fontSize: 13,
-                  paddingLeft: 10,
-                  outline: 'none',
-                  color: '#222',
-                  marginBottom: 8,
-                  transition: 'border 0.2s',
-                }}
-                onFocus={e => (e.target.style.borderWidth = '0.5px')}
-                onBlur={e => (e.target.style.borderWidth = '1px')}
-              />
-              <input
-                type="text"
-                value={connections[1]}
-                onChange={e => setConnections([connections[0], e.target.value, connections[2]])}
-                placeholder="engineers at Georgia Tech building Fintech"
-                className={isMobile ? 'series-shadow series-placeholder' : ''}
-                style={{
-                  width: 315,
-                  height: 28,
-                  borderRadius: 8,
-                  fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
-                  fontWeight: 400,
-                  fontSize: 13,
-                  paddingLeft: 10,
-                  outline: 'none',
-                  color: '#222',
-                  marginBottom: 8,
-                  transition: 'border 0.2s',
-                }}
-                onFocus={e => (e.target.style.borderWidth = '0.5px')}
-                onBlur={e => (e.target.style.borderWidth = '1px')}
-              />
-              <input
-                type="text"
-                value={connections[2]}
-                onChange={e => setConnections([connections[0], connections[1], e.target.value])}
-                placeholder="friends and family investors"
-                className={isMobile ? 'series-shadow series-placeholder' : ''}
-                style={{
-                  width: 315,
-                  height: 28,
-                  borderRadius: 8,
-                  fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
-                  fontWeight: 400,
-                  fontSize: 13,
-                  paddingLeft: 10,
-                  outline: 'none',
-                  color: '#222',
-                  marginBottom: 6,
-                  transition: 'border 0.2s',
-                }}
-                onFocus={e => (e.target.style.borderWidth = '0.5px')}
-                onBlur={e => (e.target.style.borderWidth = '1px')}
-              />
+              <div className="relative w-full mb-2">
+                <input  
+                  type="text"
+                  value={connections[0]}
+                  onChange={e => {
+                    setConnections([e.target.value, connections[1], connections[2]]);
+                    // Clear error when user starts typing
+                    if (errors.connections && errors.connections[0]) {
+                      const newConnectionErrors = [...(errors.connections || [])];
+                      newConnectionErrors[0] = '';
+                      setErrors({...errors, connections: newConnectionErrors.filter(e => e !== '')});
+                    }
+                  }}
+                  placeholder="the founders of Prod"
+                  className={`${isMobile ? 'series-shadow series-placeholder' : ''}`}
+                  style={{
+                    width: 315,
+                    height: 28,
+                    borderRadius: 8,
+                    fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
+                    fontWeight: 400,
+                    fontSize: 13,
+                    paddingLeft: 10,
+                    outline: 'none',
+                    color: '#222',
+                    marginBottom: 2,
+                    transition: 'all 0.2s',
+                    border: errors.connections && errors.connections[0] ? '2px solid #ef4444' : '1px solid #ccc',
+                    backgroundColor: errors.connections && errors.connections[0] ? '#FEF2F2' : 'white',
+                  }}
+                  onFocus={e => {
+                    if (!errors.connections || !errors.connections[0]) {
+                      e.target.style.borderWidth = '0.5px';
+                    }
+                  }}
+                  onBlur={e => {
+                    if (!errors.connections || !errors.connections[0]) {
+                      e.target.style.borderWidth = '1px';
+                    }
+                  }}
+                  disabled={isLoading}
+                />
+                {errors.connections && errors.connections[0] && (
+                  <p className="text-xs text-red-600 absolute">{errors.connections[0]}</p>
+                )}
+              </div>
+              <div className="relative w-full mb-2">
+                <input
+                  type="text"
+                  value={connections[1]}
+                  onChange={e => {
+                    setConnections([connections[0], e.target.value, connections[2]]);
+                    // Clear error when user starts typing
+                    if (errors.connections && errors.connections[1]) {
+                      const newConnectionErrors = [...(errors.connections || [])];
+                      newConnectionErrors[1] = '';
+                      setErrors({...errors, connections: newConnectionErrors.filter(e => e !== '')});
+                    }
+                  }}
+                  placeholder="engineers at Georgia Tech building Fintech"
+                  className={`${isMobile ? 'series-shadow series-placeholder' : ''}`}
+                  style={{
+                    width: 315,
+                    height: 28,
+                    borderRadius: 8,
+                    fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
+                    fontWeight: 400,
+                    fontSize: 13,
+                    paddingLeft: 10,
+                    outline: 'none',
+                    color: '#222',
+                    marginBottom: 2,
+                    transition: 'all 0.2s',
+                    border: errors.connections && errors.connections[1] ? '2px solid #ef4444' : '1px solid #ccc',
+                    backgroundColor: errors.connections && errors.connections[1] ? '#FEF2F2' : 'white',
+                  }}
+                  onFocus={e => {
+                    if (!errors.connections || !errors.connections[1]) {
+                      e.target.style.borderWidth = '0.5px';
+                    }
+                  }}
+                  onBlur={e => {
+                    if (!errors.connections || !errors.connections[1]) {
+                      e.target.style.borderWidth = '1px';
+                    }
+                  }}
+                  disabled={isLoading}
+                />
+                {errors.connections && errors.connections[1] && (
+                  <p className="text-xs text-red-600 absolute">{errors.connections[1]}</p>
+                )}
+              </div>
+              <div className="relative w-full mb-2">
+                <input
+                  type="text"
+                  value={connections[2]}
+                  onChange={e => {
+                    setConnections([connections[0], connections[1], e.target.value]);
+                    // Clear error when user starts typing
+                    if (errors.connections && errors.connections[2]) {
+                      const newConnectionErrors = [...(errors.connections || [])];
+                      newConnectionErrors[2] = '';
+                      setErrors({...errors, connections: newConnectionErrors.filter(e => e !== '')});
+                    }
+                  }}
+                  placeholder="friends and family investors"
+                  className={`${isMobile ? 'series-shadow series-placeholder' : ''}`}
+                  style={{
+                    width: 315,
+                    height: 28,
+                    borderRadius: 8,
+                    fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
+                    fontWeight: 400,
+                    fontSize: 13,
+                    paddingLeft: 10,
+                    outline: 'none',
+                    color: '#222',
+                    marginBottom: 2,
+                    transition: 'all 0.2s',
+                    border: errors.connections && errors.connections[2] ? '2px solid #ef4444' : '1px solid #ccc',
+                    backgroundColor: errors.connections && errors.connections[2] ? '#FEF2F2' : 'white',
+                  }}
+                  onFocus={e => {
+                    if (!errors.connections || !errors.connections[2]) {
+                      e.target.style.borderWidth = '0.5px';
+                    }
+                  }}
+                  onBlur={e => {
+                    if (!errors.connections || !errors.connections[2]) {
+                      e.target.style.borderWidth = '1px';
+                    }
+                  }}
+                  disabled={isLoading}
+                />
+                {errors.connections && errors.connections[2] && (
+                  <p className="text-xs text-red-600 absolute">{errors.connections[2]}</p>
+                )}
+              </div>
             </div>
             {/* Spacer to add gap at the bottom of the card */}
             <div style={{ height: 24 }} />
           </div>
           <div className="w-full flex justify-center mt-12 mb-4">
-            <button
-              className="bg-black rounded-full flex items-center justify-center"
-              style={{ width: 120, height: 48 }}
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" stroke="white" />
-                    </svg>
-            </button>
-            </div>
+            <AnimatePresence mode="wait">
+              {isLoading ? (
+                <motion.div
+                  key="loading"
+                  className="fixed inset-0 flex items-center justify-center bg-white z-40"
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                >
+                  <div className="flex items-center">
+                    <motion.span
+                      className="text-[10rem] font-bold leading-none inline-block relative"
+                    >
+                      S
+                    </motion.span>
+                    <motion.div
+                      className="w-20 h-4 overflow-hidden ml-4 relative -bottom-12"
+                      initial={{ scaleX: 0 }}
+                      animate={{ 
+                        scaleX: 1,
+                        transformOrigin: 'left center',
+                      }}
+                      transition={{ 
+                        duration: 3,
+                        ease: "easeInOut",
+                        repeat: Infinity, 
+                        repeatType: "loop"
+                      }}
+                    >
+                      <motion.div 
+                        className="h-full bg-black absolute top-0 left-0"
+                        initial={{ width: '0%' }}
+                        animate={{ width: '100%' }}
+                        transition={{ 
+                          duration: 3,
+                          ease: "easeInOut"
+                        }}
+                      />
+                    </motion.div>
+                  </div>
+                </motion.div>
+              ) : (
+                <button
+                  className={`${isLoading ? 'bg-gray-400' : 'bg-black hover:bg-black/80'} text-white rounded-full flex items-center justify-center transition-colors`}
+                  style={{ width: 120, height: 48 }}
+                  onClick={!isLoading ? handleButtonClick : undefined}
+                  disabled={isLoading}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" stroke="white" />
+                  </svg>
+                </button>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       ) : (
         // Desktop layout
-        <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8 relative h-[calc(100vh-120px)] max-h-screen overflow-auto">
+        <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8 relative h-[calc(100vh-120px)] max-h-screen overflow-y-hidden">
         {/* Left side - Profile Card */}
         <motion.div 
           className="w-full md:w-96 bg-gray-200 p-0 rounded-3xl flex flex-col h-fit"
@@ -1077,7 +1260,7 @@ const ProfileOnboarding = ({
         
         {/* Right side - Form */}
         <motion.div 
-          className="flex-1 flex flex-col px-12 overflow-auto"
+          className="flex-1 flex flex-col px-12 overflow-y-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
