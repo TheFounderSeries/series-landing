@@ -19,10 +19,6 @@ const QuestionnaireOnboarding = () => {
   const location = useLocation();
   const { bio = '', userId = '' } = location.state as { bio: string; userId: string } || {};
   
-  // Debug logging for userId
-  // console.log('QuestionnaireOnboarding - Received userId:', userId);
-  // console.log('QuestionnaireOnboarding - Received location state:', location.state);
-  
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [enhanceWithAI, setEnhanceWithAI] = useState(true);
   const navigate = useNavigate();
@@ -30,6 +26,15 @@ const QuestionnaireOnboarding = () => {
   
   // Get screen size information
   const { isMobile } = useScreenSize();
+  
+  // Add state for age and location (mobile only)
+  const [userAge, setUserAge] = useState<number | undefined>(undefined);
+  const [userLocation, setUserLocation] = useState('');
+  console.log('QuestionnaireOnboarding - Received location state:', userLocation);
+  const [errors, setErrors] = useState<{
+    age?: string;
+    location?: string;
+  }>({});
   
   // Animation variants
   const slideVariants = {
@@ -89,44 +94,81 @@ const QuestionnaireOnboarding = () => {
       if (!userId) {
         console.warn('WARNING: userId is empty or undefined!');
       }
-      
-      // Debug logging for userId before API calls
-      // console.log('saveAnswersToDatabase - Using userId:', userId);
-      if (!userId) {
-        console.warn('WARNING: userId is empty or undefined!');
+
+      // Validate age and location if provided
+      if (isMobile) {
+        let hasError = false;
+        const newErrors: { age?: string; location?: string } = {};
+        
+        // Age validation
+        if (userAge === undefined) {
+          newErrors.age = 'Age is required';
+          hasError = true;
+        } else if (isNaN(userAge) || userAge < 14 || userAge > 65) {
+          newErrors.age = 'Age must be between 14 and 65';
+          hasError = true;
+        }
+        
+        // Location validation (optional in this form, but validate if entered)
+        if (userLocation && userLocation.trim().length < 2) {
+          newErrors.location = 'Please enter a valid location';
+          hasError = true;
+        }
+        
+        // Log the validation results
+        console.log('Form validation:', { userAge, userLocation, hasError, newErrors });
+        
+        if (hasError) {
+          setErrors(newErrors);
+          return false;
+        }
+      }
+
+      // Add age and location data if available (from mobile)
+      const userData: { age?: number; location?: string } = {};
+      if (isMobile) {
+        if (userAge !== undefined) {
+          userData.age = userAge;
+        }
+        if (userLocation && userLocation.trim()) {
+          userData.location = userLocation.trim();
+        }
       }
       
-      // // Convert answers to the format needed for the database
-      // const pcaData = {
-      //   pca_successful: answers['successful_people'] === 'never_going' ? 0 : 
-      //                   answers['successful_people'] === 'likely' ? 1 : 2,
-      //   pca_goals: answers['career_status'] === 'behind' ? 0 : 
-      //              answers['career_status'] === 'satisfied' ? 1 : 2,
-      //   pca_meet: answers['meeting_people'] === 'not_ready' ? 0 : 
-      //             answers['meeting_people'] === 'curious' ? 1 : 2,
-      //   enhance_with_ai: enhanceWithAI
-      // };
       
-      // console.log('Saving questionnaire answers to database:', pcaData);
-      
-      // // Save PCA data to the database
-      // const pcaResponse = await fetch('https://series-api-202642739529.us-central1.run.app/api/users/update-pca', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({
-      //     userId: userId,
-      //     pcaData: pcaData
-      //   }),
-      // });
-      
-      // if (!pcaResponse.ok) {
-      //   console.error(`PCA update API error: ${pcaResponse.status}`);
-      // } else {
-      //   const pcaResult = await pcaResponse.json();
-      //   console.log('PCA update API response:', pcaResult);
-      // }
+      // If we have user data (age/location), update the user profile
+      if (isMobile && (userAge !== undefined || (userLocation && userLocation.trim()))) {
+        try {
+          console.log('Updating user profile with:', userData);
+          
+          // Make sure userId is valid before making the API call
+          if (!userId) {
+            console.error('Cannot update user profile: userId is empty or undefined');
+            return false;
+          }
+          
+          const userResponse = await fetch(`https://series-api-202642739529.us-central1.run.app/api/users/${userId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(userData),
+          });
+          
+          if (!userResponse.ok) {
+            console.error(`User update API error: ${userResponse.status}`);
+            console.error('Response:', await userResponse.text());
+            return false;
+          } else {
+            const userResult = await userResponse.json();
+            console.log('User update API response:', userResult);
+          }
+        } catch (error) {
+          console.error('Error updating user profile:', error);
+          return false;
+        }
+      }
+
       
       // Trigger the search endpoint with the AI enhancement preference
       const searchResponse = await fetch(`https://series-api-202642739529.us-central1.run.app/api/users/${userId}/search?enhance_with_ai=${enhanceWithAI}`, {
@@ -150,8 +192,8 @@ const QuestionnaireOnboarding = () => {
     }
   };
 
-  // Check if all questions have been answered
-  const allQuestionsAnswered = Object.keys(answers).length >= questions.length;
+  // Check if all questions have been answered and age is provided if on mobile
+  const allQuestionsAnswered = Object.keys(answers).length >= questions.length && (!isMobile || userAge !== undefined);
   
   // Get a list of unanswered question IDs
   const unansweredQuestions = questions
@@ -206,8 +248,8 @@ const QuestionnaireOnboarding = () => {
                 animate="visible"
                 variants={fadeVariants}
               >
-                {questions.map((question) => (
-                  <div key={question.id} id={question.id} className={`${isMobile ? 'space-y-2' : 'space-y-4'}`}>
+                {questions.map((question, idx) => (
+                  <div key={question.id} id={question.id} className={`${isMobile ? 'space-y-2 max-w-md mx-auto' : 'space-y-4'}`}>
                     <h2 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-medium text-center`}>
                       {question.text}
                       {/* {!answers[question.id] && (
@@ -230,6 +272,52 @@ const QuestionnaireOnboarding = () => {
                         </button>
                       ))}
                     </div>
+                    {/* Age and Location fields for mobile, after last question's options */}
+                    {isMobile && idx === questions.length - 1 && (
+                      <div className="flex gap-6 pt-10 max-w-md mx-auto">
+                        {/* Age */}
+                        <div className="flex flex-col" style={{ width: 90, paddingLeft: 4 }}>
+                          <label className={`block text-base font-medium ${errors.age ? 'text-red-600' : 'text-gray-900'} mb-1 pl-1`}>Age:</label>
+                          <select
+                            value={userAge || ''}
+                            onChange={(e) => {
+                              setUserAge(parseInt(e.target.value));
+                              if (errors.age) {
+                                setErrors({ ...errors, age: undefined });
+                              }
+                            }}
+                            className={`block rounded-full border-2 ${errors.age ? 'border-red-500' : 'border-gray-200'} shadow-lg px-4 h-8 text-sm text-gray-900 focus:border-gray-400 focus:ring-0 transition-all duration-200 w-4/5 pl-1`}
+                          >
+                            <option value="" disabled hidden></option>
+                            {Array.from({ length: 52 }, (_, i) => i + 14).map(age => (
+                              <option key={age} value={age}>{age}</option>
+                            ))}
+                          </select>
+                          {errors.age && (
+                            <p className="mt-1 text-xs text-red-600">{errors.age}</p>
+                          )}
+                        </div>
+                        {/* Location */}
+                        <div className="flex flex-col flex-grow min-w-0" style={{ marginLeft: 10 }}>
+                          <label className={`block text-base font-medium ${errors.location ? 'text-red-600' : 'text-gray-900'} mb-1`}>Location:</label>
+                          <input
+                            type="text"
+                            value={userLocation}
+                            onChange={(e) => {
+                              setUserLocation(e.target.value);
+                              if (errors.location) {
+                                setErrors({...errors, location: undefined});
+                              }
+                            }}
+                            className={`block rounded-full border-2 ${errors.location ? 'border-red-500' : 'border-gray-200'} shadow-lg px-4 h-8 text-sm text-gray-900 focus:border-gray-400 focus:ring-0 transition-all duration-200 w-full`}
+                            placeholder="New York, New York, USA"
+                          />
+                          {errors.location && (
+                            <p className="mt-1 text-xs text-red-600">{errors.location}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </motion.div>
@@ -263,7 +351,7 @@ const QuestionnaireOnboarding = () => {
                         transition={{ 
                           duration: 3,
                           ease: "easeInOut",
-                          repeat: Infinity,
+                          repeat: Infinity, 
                           repeatType: "loop"
                         }}
                       >

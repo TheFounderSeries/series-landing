@@ -46,7 +46,7 @@ const ProfileOnboarding = ({
 }: ProfileOnboardingProps) => {
   // Get screen size information
   const { isMobile } = useScreenSize();
-  const [name, setName] = useState(firstName + ' ' + lastName);
+  const [name, setName] = useState('');
   const [description, setDescription] = useState(bio);
   const [connections, setConnections] = useState(initialConnections);
   const [userLocation, setUserLocation] = useState(location);
@@ -127,7 +127,32 @@ const ProfileOnboarding = ({
       font-size: 0.75rem;
       line-height: 1rem;
       margin-top: 0.25rem;
-    }`;
+    }
+    
+    /* Custom shadow for mobile white textboxes and upload button */
+    @media (max-width: 768px) {
+      .series-shadow {
+        border: 1px solid #E8E8E8 !important;
+        box-shadow: 0px 5px 5px 0px rgba(0, 0, 0, 0.3) !important;
+        font-style: normal !important;
+      }
+      .series-upload {
+        border: 1px solid #222 !important;
+      }
+      .series-placeholder::placeholder {
+        color: #A0A0A0 !important;
+        font-weight: 400 !important;
+        font-style: italic !important;
+      }
+      .series-input-regular {
+        font-weight: 400 !important;
+        font-style: normal !important;
+      }
+      .series-shadow:focus, .series-upload:focus {
+        border-width: 0.2px !important;
+      }
+    }
+  `;
 
   const validateForm = (): boolean => {
     const newErrors: {
@@ -152,23 +177,26 @@ const ProfileOnboarding = ({
     const trimmedBio = description.trim();
     if (!trimmedBio) {
       newErrors.bio = 'Bio is required';
-    } else if (trimmedBio.length < 10) {
-      newErrors.bio = 'Bio must be at least 10 characters';
+    } else if (trimmedBio.length < 30) {
+      newErrors.bio = 'Bio must be at least 30 characters';
     }
     
-    // Location validation
-    // const trimmedLocation = userLocation.trim();
-    // if (!trimmedLocation) {
-    //   newErrors.location = 'Location is required';
-    // } else if (trimmedLocation.length < 2) {
-    //   newErrors.location = 'Please enter a valid location';
-    // }
-    
-    // Age validation
-    if (userAge === undefined || userAge === null) {
-      newErrors.age = 'Age is required';
-    } else if (isNaN(userAge) || userAge < 14 || userAge > 65) {
-      newErrors.age = 'Age must be between 14 and 65';
+    // Only validate Age and Location on desktop
+    if (!isMobile) {
+      // Location validation
+      const trimmedLocation = userLocation.trim();
+      if (!trimmedLocation) {
+        newErrors.location = 'Location is required';
+      } else if (trimmedLocation.length < 2) {
+        newErrors.location = 'Please enter a valid location';
+      }
+      
+      // Age validation
+      if (userAge === undefined || userAge === null) {
+        newErrors.age = 'Age is required';
+      } else if (isNaN(userAge) || userAge < 14 || userAge > 65) {
+        newErrors.age = 'Age must be between 14 and 65';
+      }
     }
     
     // Profile picture validation
@@ -222,6 +250,8 @@ const ProfileOnboarding = ({
       };
       return updatedErrors;
     });
+
+    console.log("newErrors: ", newErrors)
     
     const isValid = Object.keys(newErrors).length === 0;
     return isValid;
@@ -313,9 +343,13 @@ const ProfileOnboarding = ({
   // Helper function to show errors
 
   const handleButtonClick = async () => {
+    // Set loading state at the beginning to prevent multiple clicks
+    setIsLoading(true);
+    
     // Validate form before submission
     if (!validateForm()) {
       console.log('Form validation failed');
+      setIsLoading(false); // Reset loading state if validation fails
       return;
     } else {
       try {
@@ -349,7 +383,8 @@ const ProfileOnboarding = ({
         
         const userDataWithProfilePic = {
           ...userData,
-          profilePic: profilePicToUse
+          profilePic: profilePicToUse,
+          color: backgroundColor // Add the background color to the user data
         };
         
         // Make API call to create user
@@ -385,7 +420,7 @@ const ProfileOnboarding = ({
         // If we have a processed image ID, we need to update the user's profile with it
         if (processedImageId) {
           try {
-            const updateResponse = await fetch('https://series-api-202642739529.us-central1.run.app/api/users/update-profile-pic', {
+            await fetch('https://series-api-202642739529.us-central1.run.app/api/users/update-profile-pic', {
               method: 'POST',
               headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
               body: new URLSearchParams({
@@ -403,8 +438,11 @@ const ProfileOnboarding = ({
         // Use result.userId directly for navigation to ensure the correct value is passed
         const userIdToPass = result.userId || userId;
         
-        // Navigate to the questionnaire page
-        navigate('/join/2', { state: { bio: description, userId: userIdToPass } });
+        // Wait a short time to show the loading screen before navigating
+        setTimeout(() => {
+          // Navigate to the questionnaire page
+          navigate('/join/2', { state: { bio: description, userId: userIdToPass } });
+        }, 2000); // 2 seconds delay to show loading screen
         
       } catch (error) {
         console.error('Error in handleButtonClick:', error);
@@ -546,283 +584,498 @@ const ProfileOnboarding = ({
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 flex flex-col items-center justify-center relative overflow-auto">
       {isMobile ? (
-        // Mobile layout
-        <div className="w-full max-w-md mt-10">
-          {/* Mobile form fields */}
-          <motion.div
-            className="space-y-5"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
+        // Mobile layout: rectangle matches Figma color, size, and border radius, positioned higher, and about 5% longer, with a black button below
+        <div className="flex min-h-screen flex-col items-center justify-start pt-8">
+          <div
+            className="bg-[#F2F2F7] relative"
+            style={{
+              width: '105vw',
+              height: '90vh',
+              maxWidth: 400,
+              maxHeight: 820,
+              borderRadius: 15,
+              paddingBottom: 24,
+            }}
           >
-            {/* Name field */}
-            <div>
-              <label className="block text-2xl font-medium text-gray-700 mb-1">Name:</label>
-              <input
-                type="text"
-                onChange={(e) => {
-                  setName(e.target.value);
-                  if (errors.name) setErrors({...errors, name: undefined});
+            {/* Grey rectangle overlay with blur, only top corners rounded */}
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '50%', // 367/654 ≈ 0.56
+                background: '#D2D2D2',
+                borderTopLeftRadius: 15,
+                borderTopRightRadius: 15,
+                borderBottomLeftRadius: 0,
+                borderBottomRightRadius: 0,
+                backdropFilter: 'blur(32px)',
+                WebkitBackdropFilter: 'blur(32px)',
+                boxShadow: '0 0 80px 32px rgba(180,180,180,0.35)',
+                zIndex: 1,
+              }}
+            >
+              {/* Profile image background */}
+              {(isMobile && profilePic === initialProfilePic) ? null : (
+                <img
+                  src={profilePic}
+                  alt={isMobile ? "" : "Profile background"}
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    zIndex: 1
+                  }}
+                />
+              )}
+              {/* Upload button */}
+              <label 
+                htmlFor="profile-photo-upload"
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '32%',
+                  transform: 'translate(-50%, -50%)',
+                  background: errors.profilePic ? '#FEF2F2' : '#D9D9D9',
+                  borderRadius: 24,
+                  minWidth: 190,
+                  height: 30,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: 'SF Pro Semibold, SF Pro, system-ui, sans-serif',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  letterSpacing: 0.1,
+                  color: errors.profilePic ? '#ef4444' : '#222',
+                  cursor: 'pointer',
+                  zIndex: 2,
+                  border: errors.profilePic ? '2px solid #ef4444' : 'none',
+                  transition: 'all 0.2s',
                 }}
-                className={`block w-full rounded-2xl border-2 ${errors.name ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
-                placeholder="John Doe"
-                disabled={isLoading}
-              />
-              {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
-            </div>
-            
-            {/* Profile Picture */}
-            <div>
-              <label className={`block text-2xl font-medium text-gray-700 mb-1`}>Profile</label>
-              <div className="flex items-center w-full">
-                <div className="relative w-16 h-16 rounded-full overflow-hidden bg-gray-100 mr-3">
-                  <img 
-                    src={profilePic}
-                    alt="Profile"
-                    className="w-full h-full object-cover object-center"
-                  />
-                </div>
-                <label 
-                  htmlFor="mobile-profile-upload"
-                  className={`flex-1 ${errors.profilePic ? 'bg-red-100 border-2 border-red-500' : 'bg-gray-200 hover:bg-gray-300'} text-gray-700 px-3 py-2 rounded-full text-sm flex items-center justify-center ${isUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                >
-                  {isUploading ? 'Uploading...' : 'Upload'}
-                </label>
+                className={isMobile ? 'series-shadow series-upload' : ''}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{marginRight: 8}}>
+                  <path d="M12 16V6M12 6L7 11M12 6L17 11" stroke={errors.profilePic ? "#ef4444" : "#222"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="8" y1="18" x2="16" y2="18" stroke={errors.profilePic ? "#ef4444" : "#222"} strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                Upload
                 <input
-                  id="mobile-profile-upload"
+                  id="profile-photo-upload"
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   className="hidden"
                   onChange={handlePhotoUpload}
-                  disabled={isLoading || isUploading}
+                  disabled={isLoading}
                 />
-              </div>
-            </div>
-            
-            <div className="space-y-4 mt-8">
-              <div className="flex space-x-6">
-                  {/* Age field */}
-                <div className="flex flex-col w-1/4">
-                  <label className={`block text-2xl font-medium text-gray-900`}>Age</label>
-                  <div className="flex items-center">
-                    <select
-                      defaultValue=""
-                      onChange={(e) => {
-                        setUserAge(parseInt(e.target.value));
-                        if (errors.age) {
-                          setErrors({ ...errors, age: undefined });
-                        }
-                      }}
-                      className={`block w-full appearance-none rounded-2xl border-2 ${errors.age ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
-                      disabled={isLoading}
-                    >
-                      <option value="" disabled>Select age</option>
-                      {Array.from({ length: 52 }, (_, i) => i + 14).map(age => (
-                        <option key={age} value={age}>{age}</option>
-                      ))}
-                    </select>
-                  </div>
-                  {errors.age && <p className="mt-1 text-xs text-red-600">{errors.age}</p>}
-                </div>
+              </label>
 
-                {/* Location field */}
-                <div className="w-[65%]">
-                  <label className="block text-2xl font-medium text-gray-900">Location</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={userLocation}
-                      onChange={(e) => {
-                        setUserLocation(e.target.value);
-                        if (errors.location) {
-                          setErrors({...errors, location: undefined});
-                        }
-                      }}
-                      className={`block w-full rounded-2xl border-2 ${errors.location ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
-                      placeholder="New York, New York, USA"
-                      disabled={isLoading}
-                    />
-                    {errors.location && (
-                      <p className="mt-1 text-xs text-red-600">{errors.location}</p>
-                    )}
-                  </div>
-                </div>
+              {/* Graph and Join buttons row */}
+              <div
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  bottom: 24,
+                  transform: 'translateX(-50%)',
+                  display: 'flex',
+                  flexDirection: 'row',
+                  gap: 20,
+                  zIndex: 2,
+                }}
+              > 
+                      <button
+                  className="bg-[#A9A9A9] flex flex-col items-center justify-center rounded-2xl shadow-md"
+                  style={{ width: 70, height: 60, padding: 0, border: 'none' }}
+                  onClick={() => setShowGraphModal(true)}
+                >
+                  <img src={groupIconURL} alt="graph icon" width={30} height={25} />
+                  <span className="text-[14px] text-white font-medium font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight mt-.5">graph</span>
+                      </button>
+                  <button
+                  className="bg-[#A9A9A9] flex flex-col items-center justify-center rounded-2xl shadow-md"  
+                  style={{ width: 70, height: 60, border: 'none'}}
+                  onClick={() => setShowJoinModal(true)}
+                >
+                  <img src={whiteGraphURL} alt="join icon" width={40} height={32} />
+                  <span className="text-[14px] text-white font-medium font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight mb-1 -mt-1">join</span>
+                  </button>
               </div>
             </div>
-            
-            {/* Who you are field */}
-            <div className="w-full">
-              <div className="flex items-center gap-2 mb-3">
-                <label className="block text-2xl font-medium text-gray-900">Who you are and what you do</label>
+            {/* first White rectangle in the bottom half of the profile card */}
+            <div
+              style={{
+                position: 'absolute',
+                left: '50%',
+                top: '54%',
+                transform: 'translateX(-50%)',
+                width: 350,
+                height: 55,
+                background: '#fff',
+                borderRadius: 11,
+                boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)',
+                zIndex: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                flexDirection: 'row',
+                paddingLeft: 12,
+                paddingRight: 12,
+                gap: 10,
+              }}
+            >
+             <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  background: getBackgroundColor(color), // <-- use the same function as desktop
+                  flexShrink: 0,
+                }}
+              />
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => {
+                    setName(e.target.value);
+                    // Clear error when user starts typing
+                    if (errors.name) {
+                      setErrors({...errors, name: undefined});
+                    }
+                  }}
+                  placeholder="John Stuart"
+                  className={`${isMobile ? 'series-shadow series-placeholder' : ''}`}
+                  style={{
+                    width: 300,
+                    height: 32,
+                    borderRadius: 8,
+                    fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
+                    fontWeight: 400,
+                    fontSize: 13,
+                    paddingLeft: 10,
+                    outline: 'none',
+                    color: '#222',
+                    transition: 'all 0.2s',
+                    border: errors.name ? '2px solid #ef4444' : '1px solid #ccc',
+                    backgroundColor: errors.name ? '#FEF2F2' : 'white',
+                  }}
+                  onFocus={e => {
+                    if (!errors.name) {
+                      e.target.style.borderWidth = '0.5px';
+                    }
+                  }}
+                  onBlur={e => {
+                    if (!errors.name) {
+                      e.target.style.borderWidth = '1px';
+                    }
+                  }}
+                  disabled={isLoading}
+                />
+                {errors.name && (
+                  <p className="mt-1 text-xs text-red-600 absolute">{errors.name}</p>
+                )}
               </div>
-              <div className="relative">
-                <textarea
-                  rows={3}
+            </div>
+            {/* second White rectangle in the bottom half of the profile card */}
+            <div
+              style={{
+                position: 'absolute',
+                left: '50%',
+                top: '63%',
+                transform: 'translateX(-50%)',
+                width: 350,
+                height: 90,
+                background: '#fff',
+                borderRadius: 10,
+                boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)',
+                zIndex: 2,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                justifyContent: 'center',
+                paddingLeft: 18,
+                paddingRight: 18,
+                paddingTop: 7,
+                paddingBottom: 7,
+                gap: 2,
+              }}
+            >
+              <span style={{ color: '#111', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>Me</span>
+              <div className="relative w-full">
+                <input
+                  type="text"
                   value={description}
-                  onChange={(e) => {
+                  onChange={e => {
                     setDescription(e.target.value);
+                    // Clear error when user starts typing
                     if (errors.bio) {
                       setErrors({...errors, bio: undefined});
                     }
                   }}
-                  className={`block w-full rounded-2xl border-2 ${errors.bio ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200 resize-none`}
-                  placeholder="studying AI and machine learning @ UCLA and building in healthtech"
+                  placeholder="student @Columbia building fintech startup"
+                  className={`${isMobile ? 'series-shadow series-placeholder' : ''}`}
+                  style={{
+                    width: 315,
+                    height: 32,
+                    borderRadius: 8,
+                    fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
+                    fontWeight: 400,
+                    fontSize: 13,
+                    paddingLeft: 10,
+                    outline: 'none',
+                    color: '#222',
+                    transition: 'all 0.2s',
+                    border: errors.bio ? '2px solid #ef4444' : '1px solid #ccc',
+                    backgroundColor: errors.bio ? '#FEF2F2' : 'white',
+                  }}
+                  onFocus={e => {
+                    if (!errors.bio) {
+                      e.target.style.borderWidth = '0.5px';
+                    }
+                  }}
+                  onBlur={e => {
+                    if (!errors.bio) {
+                      e.target.style.borderWidth = '1px';
+                    }
+                  }}
                   disabled={isLoading}
                 />
                 {errors.bio && (
-                  <p className="mt-1 text-xs text-red-600">{errors.bio}</p>
+                  <p className="mt-1 text-xs text-red-600 absolute">{errors.bio}</p>
                 )}
               </div>
             </div>
-            
-            {/* Who you know field */}
-            <div className="w-full mt-8">
-              <div className="flex items-center gap-2 mb-3">
-                <label className="block text-2xl font-medium text-gray-900">Who you know</label>
+            {/*third White rectangle in the bottom half of the profile card */}
+            <div
+              style={{
+                position: 'absolute',
+                left: '50%',
+                top: '77%',
+                transform: 'translateX(-50%)',
+                width: 350,
+                height: 180,
+                background: '#fff',
+                borderRadius: 11,
+                boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)',
+                zIndex: 2,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                justifyContent: 'flex-start',
+                padding: 14,
+                gap: 6,
+                marginBottom: 24,
+              }}
+            >
+              <span style={{ color: '#111', fontWeight: 600, fontSize: 13, marginBottom: 2 }}>Who I know</span>
+              <div className="relative w-full mb-2">
+                <input  
+                  type="text"
+                  value={connections[0]}
+                  onChange={e => {
+                    setConnections([e.target.value, connections[1], connections[2]]);
+                    // Clear error when user starts typing
+                    if (errors.connections && errors.connections[0]) {
+                      const newConnectionErrors = [...(errors.connections || [])];
+                      newConnectionErrors[0] = '';
+                      setErrors({...errors, connections: newConnectionErrors.filter(e => e !== '')});
+                    }
+                  }}
+                  placeholder="the founders of Prod"
+                  className={`${isMobile ? 'series-shadow series-placeholder' : ''}`}
+                  style={{
+                    width: 315,
+                    height: 28,
+                    borderRadius: 8,
+                    fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
+                    fontWeight: 400,
+                    fontSize: 13,
+                    paddingLeft: 10,
+                    outline: 'none',
+                    color: '#222',
+                    marginBottom: 2,
+                    transition: 'all 0.2s',
+                    border: errors.connections && errors.connections[0] ? '2px solid #ef4444' : '1px solid #ccc',
+                    backgroundColor: errors.connections && errors.connections[0] ? '#FEF2F2' : 'white',
+                  }}
+                  onFocus={e => {
+                    if (!errors.connections || !errors.connections[0]) {
+                      e.target.style.borderWidth = '0.5px';
+                    }
+                  }}
+                  onBlur={e => {
+                    if (!errors.connections || !errors.connections[0]) {
+                      e.target.style.borderWidth = '1px';
+                    }
+                  }}
+                  disabled={isLoading}
+                />
+                {errors.connections && errors.connections[0] && (
+                  <p className="text-xs text-red-600 absolute">{errors.connections[0]}</p>
+                )}
               </div>
-              <div className="space-y-4">
-                {connections.map((connection, index) => (
-                  <div key={index} className="w-full">
-                    <div className="relative">
-                      <textarea
-                        rows={2}
-                        value={connection}
-                        onChange={(e) => {
-                          const updatedConnections = [...connections];
-                          updatedConnections[index] = e.target.value;
-                          setConnections(updatedConnections);
-                          // Clear error for this connection when typing
-                          if (errors.connections?.[index]) {
-                            const newErrors = { ...errors };
-                            if (newErrors.connections) {
-                              newErrors.connections = [...newErrors.connections];
-                              newErrors.connections[index] = '';
-                              setErrors(newErrors);
-                            }
-                          }
+              <div className="relative w-full mb-2">
+                <input
+                  type="text"
+                  value={connections[1]}
+                  onChange={e => {
+                    setConnections([connections[0], e.target.value, connections[2]]);
+                    // Clear error when user starts typing
+                    if (errors.connections && errors.connections[1]) {
+                      const newConnectionErrors = [...(errors.connections || [])];
+                      newConnectionErrors[1] = '';
+                      setErrors({...errors, connections: newConnectionErrors.filter(e => e !== '')});
+                    }
+                  }}
+                  placeholder="engineers at Georgia Tech building Fintech"
+                  className={`${isMobile ? 'series-shadow series-placeholder' : ''}`}
+                  style={{
+                    width: 315,
+                    height: 28,
+                    borderRadius: 8,
+                    fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
+                    fontWeight: 400,
+                    fontSize: 13,
+                    paddingLeft: 10,
+                    outline: 'none',
+                    color: '#222',
+                    marginBottom: 2,
+                    transition: 'all 0.2s',
+                    border: errors.connections && errors.connections[1] ? '2px solid #ef4444' : '1px solid #ccc',
+                    backgroundColor: errors.connections && errors.connections[1] ? '#FEF2F2' : 'white',
+                  }}
+                  onFocus={e => {
+                    if (!errors.connections || !errors.connections[1]) {
+                      e.target.style.borderWidth = '0.5px';
+                    }
+                  }}
+                  onBlur={e => {
+                    if (!errors.connections || !errors.connections[1]) {
+                      e.target.style.borderWidth = '1px';
+                    }
+                  }}
+                  disabled={isLoading}
+                />
+                {errors.connections && errors.connections[1] && (
+                  <p className="text-xs text-red-600 absolute">{errors.connections[1]}</p>
+                )}
+              </div>
+              <div className="relative w-full mb-2">
+                <input
+                  type="text"
+                  value={connections[2]}
+                  onChange={e => {
+                    setConnections([connections[0], connections[1], e.target.value]);
+                    // Clear error when user starts typing
+                    if (errors.connections && errors.connections[2]) {
+                      const newConnectionErrors = [...(errors.connections || [])];
+                      newConnectionErrors[2] = '';
+                      setErrors({...errors, connections: newConnectionErrors.filter(e => e !== '')});
+                    }
+                  }}
+                  placeholder="friends and family investors"
+                  className={`${isMobile ? 'series-shadow series-placeholder' : ''}`}
+                  style={{
+                    width: 315,
+                    height: 28,
+                    borderRadius: 8,
+                    fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
+                    fontWeight: 400,
+                    fontSize: 13,
+                    paddingLeft: 10,
+                    outline: 'none',
+                    color: '#222',
+                    marginBottom: 2,
+                    transition: 'all 0.2s',
+                    border: errors.connections && errors.connections[2] ? '2px solid #ef4444' : '1px solid #ccc',
+                    backgroundColor: errors.connections && errors.connections[2] ? '#FEF2F2' : 'white',
+                  }}
+                  onFocus={e => {
+                    if (!errors.connections || !errors.connections[2]) {
+                      e.target.style.borderWidth = '0.5px';
+                    }
+                  }}
+                  onBlur={e => {
+                    if (!errors.connections || !errors.connections[2]) {
+                      e.target.style.borderWidth = '1px';
+                    }
+                  }}
+                  disabled={isLoading}
+                />
+                {errors.connections && errors.connections[2] && (
+                  <p className="text-xs text-red-600 absolute">{errors.connections[2]}</p>
+                )}
+              </div>
+            </div>
+            {/* Spacer to add gap at the bottom of the card */}
+            <div style={{ height: 24 }} />
+          </div>
+          <div className="w-full flex justify-center mt-12 mb-4">
+            <AnimatePresence mode="wait">
+              {isLoading ? (
+                <motion.div
+                  key="loading"
+                  className="fixed inset-0 flex items-center justify-center bg-white z-40"
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                >
+                  <div className="flex items-center">
+                    <motion.span
+                      className="text-[10rem] font-bold leading-none inline-block relative"
+                    >
+                      S
+                    </motion.span>
+                    <motion.div
+                      className="w-20 h-4 overflow-hidden ml-4 relative -bottom-12"
+                      initial={{ scaleX: 0 }}
+                      animate={{ 
+                        scaleX: 1,
+                        transformOrigin: 'left center',
+                      }}
+                      transition={{ 
+                        duration: 3,
+                        ease: "easeInOut",
+                        repeat: Infinity, 
+                        repeatType: "loop"
+                      }}
+                    >
+                      <motion.div 
+                        className="h-full bg-black absolute top-0 left-0"
+                        initial={{ width: '0%' }}
+                        animate={{ width: '100%' }}
+                        transition={{ 
+                          duration: 3,
+                          ease: "easeInOut"
                         }}
-                        className={`block w-full rounded-2xl border-2 ${
-                          errors.connections?.[index] ? 'border-red-500' : 'border-gray-200'
-                        } shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200 resize-none`}
-                        placeholder={
-                          index === 0 ? "full-stack engineers based in Georgia" :
-                          index === 1 ? "college athletes from universities in New Jersey" :
-                          "the founders of Y Combinator"
-                        }
-                        disabled={isLoading}
                       />
-                      {errors.connections?.[index] && (
-                        <p className="mt-1 text-xs text-red-600">{errors.connections[index]}</p>
-                      )}
-                    </div>
-                    {connections.length > 3 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const updatedConnections = [...connections];
-                          updatedConnections.splice(index, 1);
-                          setConnections(updatedConnections);
-                        }}
-                        className="absolute right-3 top-3 text-gray-400 hover:text-red-500 transition-color"
-                        disabled={isLoading}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    )}
+                    </motion.div>
                   </div>
-                ))}
-                {connections.length < 5 && (
-                  <button
-                    type="button"
-                    onClick={() => setConnections([...connections, ''])}
-                    className="mt-2 flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
-                    disabled={isLoading}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    Add another person
-                  </button>
-                )}
-              </div>
-            </div>
-            
-            {/* Next button */}
-            <div className="mt-12 pt-4 flex justify-center">
-              <AnimatePresence mode="wait">
-                {isLoading ? (
-                  <motion.div
-                    key="loading"
-                    className="fixed inset-0 flex items-center justify-center bg-white z-40"
-                    variants={slideVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                  >
-                    <div className="flex items-center">
-                      <motion.span
-                        className="text-[12rem] font-bold leading-none inline-block relative"
-                        animate={{ 
-                          scale: [1, 1.1],
-                        }}
-                        transition={{ 
-                          duration: 5,
-                          ease: "easeInOut"
-                        }}
-                      >
-                        S
-                      </motion.span>
-                      <motion.div
-                        className="w-20 h-4 bg-black/20 overflow-hidden ml-4 relative -bottom-12"
-                        initial={{ scaleX: 0 }}
-                        animate={{ 
-                          scaleX: 1,
-                          transformOrigin: 'left center',
-                        }}
-                        transition={{ 
-                          duration: 5,
-                          ease: "easeInOut"
-                        }}
-                      >
-                        <motion.div 
-                          className="h-full bg-black absolute top-0 left-0"
-                          initial={{ width: '0%' }}
-                          animate={{ width: '100%' }}
-                          transition={{ 
-                            duration: 5,
-                            ease: "easeInOut"
-                          }}
-                        />
-                      </motion.div>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.button
-                    key="button"
-                    className={`${isLoading ? 'bg-gray-400' : 'bg-black hover:bg-black/80'} text-white rounded-full p-3 w-24 h-9 mb-10 inline-flex items-center justify-center transition-colors`}
-                    initial="initial"
-                    animate="animate"
-                    variants={fadeInUp}
-                    whileHover={!isLoading ? { scale: 1.05 } : {}}
-                    whileTap={!isLoading ? { scale: 0.95 } : {}}
-                    onClick={!isLoading ? handleButtonClick : undefined}
-                    disabled={isLoading}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </motion.button>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div>
+                </motion.div>
+              ) : (
+                <button
+                  className={`${isLoading ? 'bg-gray-400' : 'bg-black hover:bg-black/80'} text-white rounded-full flex items-center justify-center transition-colors`}
+                  style={{ width: 120, height: 48 }}
+                  onClick={!isLoading ? handleButtonClick : undefined}
+                  disabled={isLoading}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" stroke="white" />
+                  </svg>
+                </button>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       ) : (
         // Desktop layout
-        <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8 relative h-[calc(100vh-120px)] max-h-screen overflow-auto">
+        <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8 relative h-[calc(100vh-120px)] max-h-screen overflow-y-hidden">
         {/* Left side - Profile Card */}
         <motion.div 
           className="w-full md:w-96 bg-gray-200 p-0 rounded-3xl flex flex-col h-fit"
@@ -839,28 +1092,6 @@ const ProfileOnboarding = ({
                 alt={`${firstName} ${lastName}`}
                 className="w-full h-full object-cover object-center filter rounded-3xl"
               />
-              
-              {/* Action buttons */}
-              <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
-                <div className="relative">
-                  <button 
-                    className="bg-black/30 backdrop-blur-sm pl-4 pr-4 pb-1.5 pt-2 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-[70px]"
-                    onClick={() => setShowJoinModal(true)}
-                  >
-                    <img src={groupIconURL} alt="graph icon" width={54} height={45} />
-                    <span className="text-[14px] -mt-1 text-white font-medium font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight">graph</span>
-                  </button>
-                </div>
-                <div className="relative">
-                  <button 
-                    className="bg-black/30 backdrop-blur-sm pl-4 pr-4 pb-1.5 pt-2 rounded-xl shadow-md hover:bg-black/60 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-[68.5px]"
-                    onClick={() => setShowGraphModal(true)}
-                  >
-                    <img src={whiteGraphURL} alt="graph icon" width={54} height={45} />
-                    <span className="text-[14px] -mt-1 text-white font-medium font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight">join</span>
-                  </button>
-                </div>
-              </div>
               
               {/* Apple-style modals */}
               <AnimatePresence>
@@ -934,6 +1165,35 @@ const ProfileOnboarding = ({
                   </motion.div>
                 )}
               </AnimatePresence>
+              <div
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  bottom: 16,
+                  transform: 'translateX(-50%)',
+                  display: 'flex',
+                  flexDirection: 'row',
+                  gap: 20,
+                  zIndex: 2,
+                }}
+              >
+                <button
+                  className="bg-black/50 backdrop-blur-sm pl-4 pr-4 pb-1.5 pt-2 rounded-xl shadow-md hover:bg-black/70 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-[56px] h-[56px]"
+                  onClick={() => setShowJoinModal(true)}
+                  style={{ border: 'none' }}
+                >
+                  <img src={groupIconURL} alt="graph icon" width={40} height={32} />
+                  <span className="text-[12px] mt-1 text-white font-medium font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight">graph</span>
+                </button>
+                <button
+                  className="bg-black/50 backdrop-blur-sm pl-4 pr-4 pb-1.5 pt-2 rounded-xl shadow-md hover:bg-black/70 hover:backdrop-blur transition-all duration-200 flex flex-col items-center w-[56px] h-[56px]"
+                  onClick={() => setShowGraphModal(true)}
+                  style={{ border: 'none' }}
+                >
+                  <img src={whiteGraphURL} alt="join icon" width={40} height={32} />
+                  <span className="text-[12px] mt-1 text-white font-medium font-['SF_Pro_Medium','SF_Pro',system-ui,sans-serif] tracking-tight">join</span>
+                </button>
+              </div>
             </div>
           </div>
           
@@ -977,7 +1237,7 @@ const ProfileOnboarding = ({
                   <ul className="space-y-1">
                     {connections.map((connection, index) => (
                       <li key={index} className="flex">
-                        <span className="text-xs text-gray mr-2 flex-shrink-0">.</span>
+                        <span className="text-xs text-gray mr-2 flex-shrink0">.</span>
                         <span className="text-sm mr-1 text-gray-400 break-words flex-1 font-['SF_Pro_Text','SF_Pro',system-ui,sans-serif] tracking-tight">{connection}</span>
                       </li>
                     ))}
@@ -990,7 +1250,7 @@ const ProfileOnboarding = ({
         
         {/* Right side - Form */}
         <motion.div 
-          className="flex-1 flex flex-col px-12 overflow-auto"
+          className="flex-1 flex flex-col px-12 overflow-y-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -1014,7 +1274,7 @@ const ProfileOnboarding = ({
                           setErrors({...errors, name: undefined});
                         }
                       }}
-                      className={`block w-full rounded-2xl border-2 ${errors.name ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
+                      className={`block w-full rounded-2xl border-2 ${errors.name ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder:italic placeholder:font-light placeholder-[\'SF_Pro\',system-ui,sans-serif] placeholder:text-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
                       placeholder="John Doe"
                       disabled={isLoading}
                     />
@@ -1064,27 +1324,41 @@ const ProfileOnboarding = ({
                   <label className={`block text-2xl font-medium ${errors.age ? 'text-red-600' : 'text-gray-900'}`}>Age</label>
                 </div>
                 <div className="relative inline-block w-full">
-                  <select
-                    defaultValue=""
-                    onChange={(e) => {
-                      setUserAge(parseInt(e.target.value));
-                      if (errors.age) {
-                        setErrors({ ...errors, age: undefined });
-                      }
-                    }}
-                    className={`block w-full appearance-none rounded-2xl border-2 ${errors.age ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
-                    disabled={isLoading}
-                  >
-                    <option value="" disabled>Select age</option>
-                    {Array.from({ length: 52 }, (_, i) => i + 14).map(age => (
-                      <option key={age} value={age}>{age}</option>
-                    ))}
-                  </select>
-                  {/* <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-5">
-                    <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  </div> */}
+                  {isMobile ? (
+                    <select
+                      defaultValue=""
+                      onChange={(e) => {
+                        setUserAge(parseInt(e.target.value));
+                        if (errors.age) {
+                          setErrors({ ...errors, age: undefined });
+                        }
+                      }}
+                      className={`block w-full appearance-none rounded-2xl border-2 ${errors.age ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder:italic placeholder:font-light placeholder-[\'SF_Pro\',system-ui,sans-serif] placeholder:text-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
+                      disabled={isLoading}
+                    >
+                      <option value="" disabled hidden></option>
+                      {Array.from({ length: 52 }, (_, i) => i + 14).map(age => (
+                        <option key={age} value={age}>{age}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <select
+                      defaultValue=""
+                      onChange={(e) => {
+                        setUserAge(parseInt(e.target.value));
+                        if (errors.age) {
+                          setErrors({ ...errors, age: undefined });
+                        }
+                      }}
+                      className={`block w-full appearance-none rounded-2xl border-2 ${errors.age ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder:italic placeholder:font-light placeholder-[\'SF_Pro\',system-ui,sans-serif] placeholder:text-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
+                      disabled={isLoading}
+                    >
+                      <option value="" disabled>Select age</option>
+                      {Array.from({ length: 52 }, (_, i) => i + 14).map(age => (
+                        <option key={age} value={age}>{age}</option>
+                      ))}
+                    </select>
+                  )}
                   {errors.age && (
                     <p className="mt-1 text-xs text-red-600">{errors.age}</p>
                   )}
@@ -1106,9 +1380,9 @@ const ProfileOnboarding = ({
                         setErrors({...errors, location: undefined});
                       }
                     }}
+                    className={`block w-full rounded-2xl border-2 ${errors.location ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder:italic placeholder:font-light placeholder-[\'SF_Pro\',system-ui,sans-serif] placeholder:text-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
                     placeholder="New York, New York, USA"
                     disabled={isLoading}
-                    className={`block w-full appearance-none rounded-2xl border-2 ${errors.location ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
                   />
                   {errors.location && (
                     <p className="mt-1 text-xs text-red-600">{errors.location}</p>
@@ -1133,7 +1407,7 @@ const ProfileOnboarding = ({
                         setErrors(prev => ({ ...prev, bio: '' }));
                       }
                     }}
-                    className={`block w-full rounded-2xl border-2 ${errors.bio ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200 resize-none`}
+                    className={`block w-full rounded-2xl border-2 ${errors.bio ? 'border-red-500' : 'border-gray-200'} shadow-lg px-5 py-4 text-base text-gray-900 placeholder:italic placeholder:font-light placeholder-[\'SF_Pro\',system-ui,sans-serif] placeholder:text-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200 resize-none`}
                     placeholder="studying AI and machine learning @ UCLA and building in healthtech"
                     disabled={isLoading}
                   />
@@ -1169,7 +1443,7 @@ const ProfileOnboarding = ({
                           }
                         }
                       }}
-                      className={`block w-full rounded-xl border-2 ${errors.connections?.[index] ? 'border-red-500' : 'border-gray-200'} shadow-lg px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
+                      className={`block w-full rounded-xl border-2 ${errors.connections?.[index] ? 'border-red-500' : 'border-gray-200'} shadow-lg px-4 py-3 text-gray-900 placeholder:italic placeholder:font-light placeholder-[\'SF_Pro\',system-ui,sans-serif] placeholder:text-gray-400 focus:border-gray-400 focus:ring-0 transition-all duration-200`}
                       placeholder={
                         index === 0 ? "full-stack engineers based in Georgia" :
                         index === 1 ? "college athletes from universities in New Jersey" :
@@ -1226,7 +1500,7 @@ const ProfileOnboarding = ({
                     <div className="flex items-center">
                       <motion.span
                         className="text-[12rem] font-bold leading-none inline-block relative"
-                        animate={{ 
+                        animate={{  
                           scale: [1, 1.1],
                         }}
                         transition={{ 

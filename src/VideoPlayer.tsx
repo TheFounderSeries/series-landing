@@ -1,13 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useScreenSize } from './lib/useScreenSize';
 
 interface VideoPlayerProps {
   src: string;
   nextRoute: string;
 }
 
-const VideoPlayer = ({ src = '/loading_screen.mov', nextRoute = '/join/1' }: VideoPlayerProps) => {
+const VideoPlayer = ({ nextRoute = '/join/1' }: VideoPlayerProps) => {
+  // Get screen size information
+  const { isMobile } = useScreenSize();
+  
+  // Determine which loading screen to use based on screen size
+  const videoSrc = (isMobile ? '/loading_screen_mobile.mp4' : '/loading_screen.mov');
   const videoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
@@ -163,8 +169,8 @@ const VideoPlayer = ({ src = '/loading_screen.mov', nextRoute = '/join/1' }: Vid
         preload="auto"
         onEnded={() => navigate(nextRoute)}
       >
-        <source src={src} type="video/quicktime" />
-        <source src={src} type="video/mp4" />
+        <source src={videoSrc} type="video/quicktime" />
+        <source src={videoSrc} type="video/mp4" />
         Your browser does not support the video tag.
       </video>
     </div>
