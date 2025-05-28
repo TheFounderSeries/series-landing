@@ -90,11 +90,11 @@ const QuestionnaireOnboarding = () => {
   const saveAnswersToDatabase = async () => {
     try {
       // Debug logging for userId before API calls
-      console.log('saveAnswersToDatabase - Using userId:', userId);
+      // console.log('saveAnswersToDatabase - Using userId:', userId);
       if (!userId) {
         console.warn('WARNING: userId is empty or undefined!');
       }
-      
+
       // Validate age and location if provided
       if (isMobile) {
         let hasError = false;
@@ -168,6 +168,7 @@ const QuestionnaireOnboarding = () => {
           return false;
         }
       }
+
       
       // Trigger the search endpoint with the AI enhancement preference
       const searchResponse = await fetch(`https://series-api-202642739529.us-central1.run.app/api/users/${userId}/search?enhance_with_ai=${enhanceWithAI}`, {
@@ -204,13 +205,13 @@ const QuestionnaireOnboarding = () => {
       setIsLoading(true);
       
       // Debug logging before saving answers
-      console.log('handleNext - Before saving answers, userId:', userId);
+      // console.log('handleNext - Before saving answers, userId:', userId);
       
       // Save answers to database
       await saveAnswersToDatabase();
       
       // Debug logging for navigation
-      console.log('handleNext - Navigating to complete page with bio:', bio);
+      // console.log('handleNext - Navigating to complete page with bio:', bio);
       
       // Simulate API delay
       setTimeout(() => {
