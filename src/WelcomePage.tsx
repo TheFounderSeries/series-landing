@@ -118,7 +118,7 @@ const WelcomePage = () => {
           
           <button 
             className="text-gray-500 py-3 px-8 text-lg rounded-full border border-gray-300 font-medium hover:bg-gray-50 transition-colors w-64"
-            onClick={() => navigate('/join/faq')}
+            onClick={() => navigate('/join/faq', { state: { bio, userId } })}
           >
             Confused?
           </button>
