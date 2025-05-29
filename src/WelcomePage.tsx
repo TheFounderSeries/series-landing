@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import UniversityModal from './components/UniversityModal';
 
 const WelcomePage = () => {
   const location = useLocation();
@@ -8,7 +9,18 @@ const WelcomePage = () => {
   const { bio = 'I just joined Series!', userId = '' } = location.state as { bio: string; userId: string } || {};
   const [sender, setSender] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [isUniversityStudent, setIsUniversityStudent] = useState<boolean | null>(null);
   
+  // Show the university modal when the page loads
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowModal(true);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     const fetchUserData = async () => {
       if (!userId) {
@@ -42,6 +54,27 @@ const WelcomePage = () => {
     fetchUserData();
   }, [userId]);
   
+  // Handle university modal responses
+  const handleYesClick = () => {
+    setIsUniversityStudent(true);
+    setShowModal(false);
+    // Standard deeplink for .edu users
+  };
+  
+  const handleNoClick = () => {
+    setIsUniversityStudent(false);
+    setShowModal(false);
+    // Different deeplink for non-.edu users
+  };
+  
+  // Get the appropriate deeplink based on university status
+  const getDeeplink = () => {
+    if (isUniversityStudent === false) {
+      return `imessage://+18557141806?body=Hey,%20I'm%20$%20and%20I%20just%20joined%20Series!%0A%0AMy%20bio%20is:%20${encodeURIComponent(bio)}`;
+    }
+    return `imessage://${sender || "No sender available"}?body=Hey,%20I'm%20$%20and%20I%20just%20joined%20Series!%0A%0AMy%20bio%20is:%20${encodeURIComponent(bio)}`;
+  };
+
   // Animation variants
   const fadeIn = {
     initial: { opacity: 0, y: 20 },
@@ -49,7 +82,13 @@ const WelcomePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+    <>
+      <UniversityModal 
+        isOpen={showModal}
+        onYesClick={handleYesClick}
+        onNoClick={handleNoClick}
+      />
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
       <motion.div 
         className="text-center"
         initial="initial"
@@ -70,7 +109,7 @@ const WelcomePage = () => {
             </div>
           ) : (
             <a 
-              href={`imessage://${sender || "No sender available"}?body=Hey,%20I'm%20$%20and%20I%20just%20joined%20Series!%0A%0AMy%20bio%20is:%20${encodeURIComponent(bio)}`}
+              href={getDeeplink()}
               target="_blank"
               className="bg-black text-white text-lg py-3 px-8 rounded-full font-medium hover:bg-black/80 transition-colors w-64 text-center"
             >
@@ -87,6 +126,7 @@ const WelcomePage = () => {
         </div>
       </motion.div>
     </div>
+    </>
   );
 };
 

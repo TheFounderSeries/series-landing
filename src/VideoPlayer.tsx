@@ -13,7 +13,7 @@ const VideoPlayer = ({ nextRoute = '/join/1' }: VideoPlayerProps) => {
   const { isMobile } = useScreenSize();
   
   // Determine which loading screen to use based on screen size
-  const videoSrc = (isMobile ? '/loading_screen_mobile.mp4' : '/loading_screen.mov');
+  const videoSrc = (isMobile ? '/loading_screen_mobile.mp4' : '/loading_screen.mp4');
   const videoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
