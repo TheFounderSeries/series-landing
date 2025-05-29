@@ -386,7 +386,7 @@ const ProfileOnboarding = ({
         };
         
         // Make API call to create user
-        const response = await fetch('http://localhost:8000/api/users', {
+        const response = await fetch('https://series-api-202642739529.us-central1.run.app/api/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(userDataWithProfilePic)
