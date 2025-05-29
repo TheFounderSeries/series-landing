@@ -39,7 +39,6 @@ const WelcomePage = () => {
         }
         
         const userData = await response.json();
-        console.log('User data retrieved:', userData);
         
         if (userData.current_sender_name) {
           setSender(userData.current_sender_name);

@@ -30,7 +30,6 @@ const QuestionnaireOnboarding = () => {
   // Add state for age and location (mobile only)
   const [userAge, setUserAge] = useState<number | undefined>(undefined);
   const [userLocation, setUserLocation] = useState('');
-  console.log('QuestionnaireOnboarding - Received location state:', userLocation);
   const [errors, setErrors] = useState<{
     age?: string;
     location?: string;
@@ -115,9 +114,6 @@ const QuestionnaireOnboarding = () => {
           hasError = true;
         }
         
-        // Log the validation results
-        console.log('Form validation:', { userAge, userLocation, hasError, newErrors });
-        
         if (hasError) {
           setErrors(newErrors);
           return false;
@@ -139,8 +135,6 @@ const QuestionnaireOnboarding = () => {
       // If we have user data (age/location), update the user profile
       if (isMobile && (userAge !== undefined || (userLocation && userLocation.trim()))) {
         try {
-          console.log('Updating user profile with:', userData);
-          
           // Make sure userId is valid before making the API call
           if (!userId) {
             console.error('Cannot update user profile: userId is empty or undefined');
@@ -161,7 +155,6 @@ const QuestionnaireOnboarding = () => {
             return false;
           } else {
             const userResult = await userResponse.json();
-            console.log('User update API response:', userResult);
           }
         } catch (error) {
           console.error('Error updating user profile:', error);
@@ -182,7 +175,6 @@ const QuestionnaireOnboarding = () => {
         console.error(`Search API error: ${searchResponse.status}`);
       } else {
         const searchResult = await searchResponse.json();
-        console.log('Search API response:', searchResult);
       }
       
       return true;
