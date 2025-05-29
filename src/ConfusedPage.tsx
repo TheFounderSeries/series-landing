@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ArrowLeft from 'lucide-react/dist/esm/icons/arrow-left';
 
 const ConfusedPage = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { bio = 'I just joined Series!', userId = '' } = location.state as { bio: string; userId: string } || {};
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -121,7 +123,7 @@ const ConfusedPage = () => {
   }, []);
 
   const handleBackClick = () => {
-    navigate('/join/complete');
+    navigate('/join/complete', { state: { bio, userId } });
   };
 
   return (
