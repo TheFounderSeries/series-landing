@@ -69,7 +69,7 @@ const WelcomePage = () => {
   // Get the appropriate deeplink based on university status
   const getDeeplink = () => {
     if (isUniversityStudent === false) {
-      return `imessage://+18557141806?body=Hey,%20I'm%20$%20and%20I%20just%20joined%20Series!%0A%0AMy%20bio%20is:%20${encodeURIComponent(bio)}`;
+      return `imessage://+18557141806?body=Hey,%20I%20just%20joined%20Series!%0A%0AMy%20bio%20is:%20${encodeURIComponent(bio)}`;
     }
     return `imessage://${sender || "No sender available"}?body=Hey,%20I'm%20$%20and%20I%20just%20joined%20Series!%0A%0AMy%20bio%20is:%20${encodeURIComponent(bio)}`;
   };
