@@ -316,7 +316,7 @@ const QuestionnaireOnboarding = () => {
             </div>
 
             {/* Submit Button Section */}
-            <div className="mt-32 mb-16 flex justify-center">
+            <div className="mt-28 mb-12 flex justify-center">
               <AnimatePresence mode="wait">
                 {isLoading && (
                   <motion.div
@@ -388,7 +388,7 @@ const QuestionnaireOnboarding = () => {
 
             {/* AI Toggle Section */}
             <motion.div 
-              className="mt-16 mb-24 flex items-center justify-center w-full"
+              className="mt-12 flex items-center justify-center w-full"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ 

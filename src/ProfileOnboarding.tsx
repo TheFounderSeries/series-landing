@@ -1484,7 +1484,7 @@ const ProfileOnboarding = ({
             </div>
             
             {/* Next button */}
-            <div className="mt-auto mt-10 pt-8 flex justify-center">
+            <div className="mt-auto pt-4 flex justify-center">
               <AnimatePresence mode="wait">
                 {isLoading ? (
                   <motion.div
@@ -1535,7 +1535,7 @@ const ProfileOnboarding = ({
                 ) : (
                   <motion.button
                     key="button"
-                    className={`${isLoading ? 'bg-gray-400' : 'bg-black hover:bg-black/80'} text-white rounded-full p-3 w-24 h-9 mb-10 inline-flex items-center justify-center transition-colors`}
+                    className={`${isLoading ? 'bg-gray-400' : 'bg-black hover:bg-black/80'} text-white rounded-full p-3 w-24 h-9 inline-flex items-center justify-center transition-colors`}
                     initial="initial"
                     animate="animate"
                     variants={fadeInUp}
