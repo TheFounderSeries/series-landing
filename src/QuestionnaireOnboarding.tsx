@@ -216,7 +216,7 @@ const QuestionnaireOnboarding = () => {
       // Simulate API delay
       setTimeout(() => {
         setIsLoading(false);
-        navigate('/join/complete', { state: { bio } });
+        navigate('/join/complete', { state: { bio, userId } });
       }, 2000);
     } else {
       // Scroll to the first unanswered question
