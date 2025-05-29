@@ -14,6 +14,20 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    exclude: ['lucide-react'],
+    include: ['lucide-react'],
+    esbuildOptions: {
+      // Enable esbuild's tree shaking for production
+      treeShaking: true,
+    },
   },
+  build: {
+    rollupOptions: {
+      // Ensure proper handling of dynamic imports
+      output: {
+        manualChunks: {
+          'lucide-react': ['lucide-react']
+        }
+      }
+    }
+  }
 });
