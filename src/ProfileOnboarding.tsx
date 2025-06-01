@@ -583,16 +583,17 @@ const ProfileOnboarding = ({
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 flex flex-col items-center justify-center relative overflow-auto">
       {isMobile ? (
         // Mobile layout: rectangle matches Figma color, size, and border radius, positioned higher, and about 5% longer, with a black button below
-        <div className="flex min-h-screen flex-col items-center justify-start pt-8">
+        <div className="w-full px-2.5 flex min-h-screen flex-col items-center justify-start pt-8">
           <div
-            className="bg-[#F2F2F7] relative"
+            className="bg-[#F2F2F7] relative mx-auto"
             style={{
-              width: '105vw',
-              height: '90vh',
-              maxWidth: 400,
-              maxHeight: 820,
+              width: '100%',
+              maxWidth: 360,
+              height: '100vh',
+              maxHeight: 900,
               borderRadius: 15,
-              paddingBottom: 24,
+              paddingBottom: 10,
+              paddingTop: 2.5,
             }}
           >
             {/* Grey rectangle overlay with blur, only top corners rounded */}
@@ -636,7 +637,7 @@ const ProfileOnboarding = ({
                 style={{
                   position: 'absolute',
                   left: '50%',
-                  top: '32%',
+                  top: '29%',
                   transform: 'translate(-50%, -50%)',
                   background: errors.profilePic ? '#FEF2F2' : '#D9D9D9',
                   borderRadius: 24,
@@ -709,7 +710,7 @@ const ProfileOnboarding = ({
               style={{
                 position: 'absolute',
                 left: '50%',
-                top: '54%',
+                top: '52.5%',
                 transform: 'translateX(-50%)',
                 width: 350,
                 height: 55,
@@ -749,7 +750,7 @@ const ProfileOnboarding = ({
                   placeholder="John Stuart"
                   className={`${isMobile ? 'series-shadow series-placeholder' : ''}`}
                   style={{
-                    width: 300,
+                    width: 282,
                     height: 32,
                     borderRadius: 8,
                     fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
@@ -784,7 +785,7 @@ const ProfileOnboarding = ({
               style={{
                 position: 'absolute',
                 left: '50%',
-                top: '63%',
+                top: '61.5%',
                 transform: 'translateX(-50%)',
                 width: 350,
                 height: 90,
@@ -853,7 +854,7 @@ const ProfileOnboarding = ({
               style={{
                 position: 'absolute',
                 left: '50%',
-                top: '77%',
+                top: '75%',
                 transform: 'translateX(-50%)',
                 width: 350,
                 height: 180,
