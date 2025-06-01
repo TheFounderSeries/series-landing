@@ -710,9 +710,9 @@ const ProfileOnboarding = ({
               style={{
                 position: 'absolute',
                 left: '50%',
-                top: '52.5%',
+                top: '54%',
                 transform: 'translateX(-50%)',
-                width: 350,
+                width: 320,
                 height: 55,
                 background: '#fff',
                 borderRadius: 11,
@@ -750,7 +750,7 @@ const ProfileOnboarding = ({
                   placeholder="John Stuart"
                   className={`${isMobile ? 'series-shadow series-placeholder' : ''}`}
                   style={{
-                    width: 282,
+                    width: 250,
                     height: 32,
                     borderRadius: 8,
                     fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
@@ -785,9 +785,9 @@ const ProfileOnboarding = ({
               style={{
                 position: 'absolute',
                 left: '50%',
-                top: '61.5%',
+                top: '63%',
                 transform: 'translateX(-50%)',
-                width: 350,
+                width: 320,
                 height: 90,
                 background: '#fff',
                 borderRadius: 10,
@@ -816,10 +816,10 @@ const ProfileOnboarding = ({
                       setErrors({...errors, bio: undefined});
                     }
                   }}
-                  placeholder="student @Columbia building fintech startup"
+                  placeholder="student @Columbia building healthtech"
                   className={`${isMobile ? 'series-shadow series-placeholder' : ''}`}
                   style={{
-                    width: 315,
+                    width: 285,
                     height: 32,
                     borderRadius: 8,
                     fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
@@ -854,9 +854,9 @@ const ProfileOnboarding = ({
               style={{
                 position: 'absolute',
                 left: '50%',
-                top: '75%',
+                top: '76%',
                 transform: 'translateX(-50%)',
-                width: 350,
+                width: 320,
                 height: 180,
                 background: '#fff',
                 borderRadius: 11,
@@ -888,7 +888,7 @@ const ProfileOnboarding = ({
                   placeholder="the founders of Prod"
                   className={`${isMobile ? 'series-shadow series-placeholder' : ''}`}
                   style={{
-                    width: 315,
+                    width: 285,
                     height: 28,
                     borderRadius: 8,
                     fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
@@ -931,10 +931,10 @@ const ProfileOnboarding = ({
                       setErrors({...errors, connections: newConnectionErrors.filter(e => e !== '')});
                     }
                   }}
-                  placeholder="engineers at Georgia Tech building Fintech"
+                  placeholder="engineers at Georgia Tech"
                   className={`${isMobile ? 'series-shadow series-placeholder' : ''}`}
                   style={{
-                    width: 315,
+                    width: 285,
                     height: 28,
                     borderRadius: 8,
                     fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
@@ -980,7 +980,7 @@ const ProfileOnboarding = ({
                   placeholder="friends and family investors"
                   className={`${isMobile ? 'series-shadow series-placeholder' : ''}`}
                   style={{
-                    width: 315,
+                    width: 285,
                     height: 28,
                     borderRadius: 8,
                     fontFamily: 'SF Pro, SF Pro Text, SF Pro Display, SF Pro Light, system-ui, sans-serif',
