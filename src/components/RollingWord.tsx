@@ -66,7 +66,7 @@ export const RollingWord: React.FC<RollingWordProps> = ({
 
   return (
     <span 
-      className="inline-block text-center"
+      className="inline-block text-center text-3xl"
       style={{ 
         minWidth: `${maxWidth}rem`,
       }}

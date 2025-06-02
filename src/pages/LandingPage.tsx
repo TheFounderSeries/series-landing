@@ -2,8 +2,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
-import RollingWord from './components/RollingWord';
-import { useScreenSize } from './lib/useScreenSize';
+import RollingWord from '../components/RollingWord';
+import { useScreenSize } from '../lib/useScreenSize';
 
 const LandingPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -15,11 +15,31 @@ const LandingPage = () => {
     
     // After 3 seconds, navigate to the video player instead of directly to profile onboarding
     const timer = setTimeout(() => {
-      navigate('/join/intro');
+      navigate('/join');
       setIsLoading(false);
     }, 3000);
     
     return () => clearTimeout(timer);
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.3, // 0.2s between each child
+        delayChildren: 0.4, // Initial delay before animation starts
+      },
+    },
+  };
+  
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.9 }
+    },
   };
   
   const slideVariants = {
@@ -29,12 +49,6 @@ const LandingPage = () => {
   };
   // List of potential serendipitous meetings
   const meetingOptions = ["meet your next cofounder", "hire your first developer", "pitch your future investor", "discover your dream job", "create your Friday night", "meet your AI friend"];
-
-  // Animation variants for the elements
-  const fadeInUp = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.6 } }
-  };
 
   // Render different layouts based on screen size
   return (
@@ -96,54 +110,59 @@ const LandingPage = () => {
             )}
             
             {/* Main content */}
-            <div className={`text-center ${isMobile ? 'px-6' : 'max-w-2xl px-4'} mx-auto`}>
+            <motion.div 
+              className={`text-center ${isMobile ? 'px-6' : 'max-w-2xl px-4'} mx-auto`}
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+            >
               <motion.h1 
-                className={`${isMobile ? 'text-5xl' : 'text-7xl'} font-bold mb-6`}
-                initial="initial"
-                animate="animate"
-                variants={fadeInUp}
+                className={`${isMobile ? 'text-5xl' : 'text-7xl'} font-bold mb-4`}
+                variants={itemVariants}
               >
                 Series
               </motion.h1>
               
               <motion.div 
-                className="text-center mb-8"
-                initial="initial"
-                animate="animate"
-                variants={fadeInUp}
+                className="text-center mb-16"
+                variants={itemVariants}
               >
-                <div className={`${isMobile ? 'text-xl' : 'text-xl sm:text-2xl'} font-medium h-8 flex justify-center`}>
+                <div className={`${isMobile ? 'text-xl' : 'text-2xl'} font-medium h-8 flex justify-center`}>
                   <RollingWord words={meetingOptions} />
                 </div>
               </motion.div>
 
               {!isMobile && (
                 <motion.p 
-                  className="text-base text-black/70 mb-10"
-                  initial="initial"
-                  animate="animate"
-                  variants={fadeInUp}
+                  className="text-xl font-medium text-black/40 mb-8"
+                  variants={itemVariants}
                 >
                   The First AI Social Network
                 </motion.p>
               )}
               
               <motion.button
-                className="bg-black text-white rounded-full p-3 w-20 mb-10 inline-flex items-center justify-center hover:bg-black/80 transition-colors"
-                initial="initial"
-                animate="animate"
-                variants={fadeInUp}
+                className="bg-black text-white rounded-full px-1 py-4 w-40 mb-10 inline-flex items-center justify-center hover:bg-black/80 transition-colors"
+                variants={itemVariants}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleButtonClick}
               >
-                <ArrowRight className="w-3 h-3" />
+                <span className="mr-3 text-xl font-medium">Join us</span> <ArrowRight className="w-5 h-5" />
               </motion.button>
-            </div>
+            </motion.div>
             
             {/* Backer icons at the bottom for desktop */}
             {!isMobile && (
-              <div className="fixed bottom-9 left-0 right-0 px-8">
+              <motion.div 
+                className="fixed bottom-9 left-0 right-0 px-8"
+                initial={{opacity: 0, y: 20}}
+                animate={{
+                  opacity:1,
+                  y:0,
+                  transition: { delay: 2.2, duration: 0.6}
+                }}
+              >
                 <div className="flex justify-between items-center w-full">
                   <span className="text-center text-gray-200 text-lg font-medium">
                     AS SEEN ON:
@@ -151,7 +170,7 @@ const LandingPage = () => {
                   <a href="https://www.forbes.com/sites/davidprosser/2025/04/04/how-two-yale-juniors-just-raised-31-million-for-their-social-network/" target="_blank" rel="noopener noreferrer" className="transition-all hover:brightness-100">
                     <img src="/images/9 3.png" alt="Backer 1" className="h-12 w-auto opacity-50 hover:opacity-100 transition-opacity" />
                   </a>
-                  <a href="Coming soon!" className="transition-all hover:brightness-100">
+                  <a href="https://www.nbcnews.com/video/-series-co-founders-talk-about-what-it-took-to-get-the-social-network-off-the-ground-240629317572" className="transition-all hover:brightness-100">
                     <img src="/images/10 4.png" alt="Backer 2" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
                   </a>
                   <a href="https://www.entrepreneur.com/starting-a-business/yale-students-raised-3m-in-14-days-for-anti-facebook/489578" target="_blank" rel="noopener noreferrer" className="transition-all hover:brightness-100">
@@ -170,7 +189,7 @@ const LandingPage = () => {
                     <img src="/images/image 2372.png" alt="Backer 7" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
                   </a>
                 </div>
-              </div>
+              </motion.div>
             )}
           </>
         )}

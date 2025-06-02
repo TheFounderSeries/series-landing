@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 // SmallScreenMessage import removed as it's no longer used
-import { useScreenSize } from './lib/useScreenSize';
+import { useScreenSize } from '../lib/useScreenSize';
 
 interface QuestionnaireOption {
   id: string;
