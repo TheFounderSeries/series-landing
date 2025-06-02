@@ -63,7 +63,7 @@ const WelcomePage = ({ userData, onComplete }: WelcomePageProps = {}) => {
       }
       
       try {
-        const response = await fetch(`http://localhost:8000/api/users/${userId}`);
+        const response = await fetch(`http://series-api-202642739529.us-central1.run.app/api/users/${userId}`);
         
         if (!response.ok) {
           console.error(`User API error: ${response.status}`);

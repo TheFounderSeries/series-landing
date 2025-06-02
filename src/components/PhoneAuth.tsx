@@ -26,7 +26,7 @@ const getBackgroundColor = (colorIndex?: number): string => {
 // Function to send verification code via backend API
 const sendVerificationCode = async (phoneNumber: string): Promise<{success: boolean; verificationId?: string}> => {
   try {
-    const response = await fetch('http://localhost:8000/api/auth/request-otp', {
+    const response = await fetch('https://series-api-202642739529.us-central1.run.app/api/auth/request-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -150,7 +150,7 @@ const PhoneAuth: React.FC<PhoneAuthProps> = ({ onSubmit, userData }) => {
           const e164Phone = formatPhoneToE164(phoneNumber);
           
           // Verify the code with our backend
-          const response = await fetch('http://localhost:8000/api/auth/verify-otp', {
+          const response = await fetch('https://series-api-202642739529.us-central1.run.app/api/auth/verify-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -215,7 +215,7 @@ const PhoneAuth: React.FC<PhoneAuthProps> = ({ onSubmit, userData }) => {
             };
 
             // Create the user in the backend
-            const createUserResponse = await fetch('http://localhost:8000/api/users', {
+            const createUserResponse = await fetch('https://series-api-202642739529.us-central1.run.app/api/users', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(userCreateData),
@@ -229,6 +229,28 @@ const PhoneAuth: React.FC<PhoneAuthProps> = ({ onSubmit, userData }) => {
             const createdUser = await createUserResponse.json();
             const userId = createdUser.userId || e164Phone;
           
+            // Trigger the search endpoint with the AI enhancement preference from userData
+            try {
+              const enhanceWithAI = userData?.enhanceWithAI !== undefined ? userData.enhanceWithAI : true;
+              console.log('Triggering search with AI enhancement:', enhanceWithAI);
+              const searchResponse = await fetch(`https://series-api-202642739529.us-central1.run.app/api/users/${userId}/search?enhance_with_ai=${enhanceWithAI}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              });
+              
+              if (!searchResponse.ok) {
+                console.error(`Search API error: ${searchResponse.status}`);
+              } else {
+                const searchResult = await searchResponse.json();
+                console.log('Search result:', searchResult);
+              }
+            } catch (searchErr) {
+              console.error('Error triggering search:', searchErr);
+              // Don't throw error here, continue with onSubmit
+            }
+            
             // Call onSubmit with the userId from the response
             await onSubmit(userId);
           } catch (createErr) {
