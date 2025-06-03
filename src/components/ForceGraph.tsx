@@ -105,10 +105,10 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
     const userNode: GraphNode = {
       id: 'user',
       name: userData?.name?.first || 'You',
-      val: 10,
+      val: 10, 
       avatar: userData?.profilePic || defaultAvatar,
-      x:0,
-      y:0
+      x: 0,
+      y: 0,
     };
 
     // Create connection nodes
@@ -192,6 +192,19 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
     // This should prevent the size jumping issue
   }, 50);
 }, [graphData, dimensions]);
+
+  // Set initial zoom level
+  useEffect(() => {
+    const fg = graphRef.current;
+    if (!fg) return;
+    
+    // Set initial zoom level to be closer (higher value = closer zoom)
+    setTimeout(() => {
+      if (fg.zoom && typeof fg.zoom === 'function') {
+        fg.zoom(2.5);
+      }
+    }, 100);
+  }, []);
 
   // Handle node click
   const handleNodeClick = (node: GraphNode) => {
@@ -290,13 +303,30 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
         ctx.closePath();
         ctx.clip();
         
-        // Draw the image to fill the circle
+        // Draw the image with preserved aspect ratio
+        const aspectRatio = img.width / img.height;
+        let drawWidth, drawHeight, offsetX, offsetY;
+        
+        if (aspectRatio >= 1) {
+          // Image is wider than tall
+          drawHeight = imgSize;
+          drawWidth = drawHeight * aspectRatio;
+          offsetX = x - (drawWidth / 2);
+          offsetY = y - nodeRadius;
+        } else {
+          // Image is taller than wide
+          drawWidth = imgSize;
+          drawHeight = drawWidth / aspectRatio;
+          offsetX = x - nodeRadius;
+          offsetY = y - (drawHeight / 2);
+        }
+        
         ctx.drawImage(
           img,
-          x - nodeRadius,
-          y - nodeRadius,
-          imgSize,
-          imgSize
+          offsetX,
+          offsetY,
+          drawWidth,
+          drawHeight
         );
         
         // Add a subtle white border
@@ -373,7 +403,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
         graphData={graphData}
         nodeCanvasObject={nodeCanvasObject}
         linkColor={() => '#cccccc'}
-        linkWidth={1}
+        linkWidth={3}
         linkDirectionalParticles={0}
         linkDirectionalParticleWidth={1.4}
         nodeRelSize={1}

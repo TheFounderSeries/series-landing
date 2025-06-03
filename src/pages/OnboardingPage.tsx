@@ -46,6 +46,9 @@ const OnboardingPage = () => {
 
   // Handle moving to the next step
   const goToNextStep = (newData: Partial<OnboardingData> = {}) => {
+    console.log('goToNextStep called with data:', newData);
+    console.log('Current step:', step);
+    
     // If we're coming from the profile page, format the name properly
     if (step === 'profile' && typeof newData.name === 'string') {
       // Convert string name to object format
@@ -57,36 +60,46 @@ const OnboardingPage = () => {
           last: nameParts.slice(1).join(' ') || ''
         }
       };
+      console.log('Formatted data for profile step:', formattedData);
       setUserData(prev => ({ ...prev, ...formattedData }));
     } else {
+      console.log('Setting user data directly:', newData);
       setUserData(prev => ({ ...prev, ...newData }));
     }
     
+    console.log('Processing step transition for:', step);
     switch (step) {
       case 'video':
+        console.log('Transitioning from video to profile');
         setStep('profile');
         break;
       case 'profile':
+        console.log('Transitioning from profile to connections (via loading)');
         // Show loading screen first when transitioning from profile to connections
         setStep('loading');
         // Then after a short delay, show the connections graph page
         setTimeout(() => {
+          console.log('Loading complete, showing connections');
           setStep('connections');
         }, 500); // Short delay to show loading screen
         break;
       case 'connections':
+        console.log('Transitioning from connections to loading');
         // Show loading screen first when transitioning from connections to phone
         setStep('loading');
         // Then after a short delay, show the phone auth page
         setTimeout(() => {
+          console.log('Loading complete, staying on loading');
           setStep('loading');
         }, 500); // Short delay to show loading screen
         break;
       case 'loading':
+        console.log('Transitioning from loading to complete');
         // After loading is complete, move to welcome page
         setStep('complete');
         break;
       default:
+        console.log('Unknown step:', step);
         break;
     }
   };

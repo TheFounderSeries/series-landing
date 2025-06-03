@@ -187,7 +187,7 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
                 onKeyDown={handleKeyPress}
               />
             </div>
-            <div className="flex-shrink-0 text-2xl flex items-center justify-center font-bold px-1">in</div>
+            <div className="flex-shrink-0 text-xl flex items-center justify-center font-light px-1 tracking-wider">from</div>
             <div className="w-full sm:w-[calc(50%-16px)] flex items-center">
               <input 
                 className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-black"
