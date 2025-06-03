@@ -3,9 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenSize } from '../lib/useScreenSize';
 
 // Dummy data and assets
-const initialProfilePic = '../../images/default-avatar.png';
-const whiteGraphURL = 'src/assets/graph_icon.svg';
-const groupIconURL = 'src/assets/group_icon.svg';
+const initialProfilePic = '/images/default-avatar.png';
+const whiteGraphURL = '/src/assets/graph_icon.svg';
+const groupIconURL = '/src/assets/group_icon.svg';
 
 interface ProfilePageProps {
   initialData?: {
