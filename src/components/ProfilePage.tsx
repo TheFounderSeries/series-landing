@@ -1,11 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenSize } from '../lib/useScreenSize';
+import whiteGraphURL from '../assets/graph_icon.svg';
+import groupIconURL from '../assets/group_icon.svg';
 
 // Dummy data and assets
 const initialProfilePic = '/images/default-avatar.png';
-const whiteGraphURL = '/src/assets/graph_icon.svg';
-const groupIconURL = '/src/assets/group_icon.svg';
 
 interface ProfilePageProps {
   initialData?: {
