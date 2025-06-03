@@ -89,7 +89,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     connections?: string[];
   }>({});
 
-  // Handle photo upload with server processing
+  // Handle photo upload with Google Cloud Storage
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -111,16 +111,23 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
       return;
     }
 
-    // Create a local URL for the image to display in the UI
+    // Create a local URL for the image to display in the UI immediately
     const localImageUrl = URL.createObjectURL(file);
     setProfilePic(localImageUrl);
     setIsUploading(true);
     
     try {
-      // Upload the image to the server for processing
+      // Create a FormData object to send the file
       const formData = new FormData();
       formData.append('file', file);
-      const response = await fetch('https://series-api-202642739529.us-central1.run.app/api/users/upload-photo', {
+      
+      // Add metadata for Google Cloud Storage
+      formData.append('storage_type', 'gcs'); // Indicate we want to use Google Cloud Storage
+      formData.append('access_level', 'authenticated'); // Only allow authenticated access
+      
+      // Upload the image to our backend which will handle GCS upload
+      // Using our API utility to get the base URL from environment variables
+      const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/users/upload-photo', {
         method: 'POST',
         body: formData,
       });
@@ -144,14 +151,50 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
         throw new Error(errorMessage);
       }
       
-      // Update the profile picture with the server URL
+      // Update the profile picture with the authenticated URL
+      // In the ProfilePage.tsx, update the success handler:
       if (result.success && result.image_url) {
-        const fileUrl = `https://series-api-202642739529.us-central1.run.app/api/users/files/${result.image_url}`;
-        setProfilePic(fileUrl);
-        
-        // Clear any previous errors
-        if (errors.profilePic) {
-          setErrors({ ...errors, profilePic: undefined });
+        try {
+          // Use the API base URL from environment variables
+          const apiUrl = `${import.meta.env.VITE_API_BASE_URL}${result.image_url.replace('/api', '')}`;
+          console.log("Requesting to ", apiUrl);
+          const signedUrlResponse = await fetch(apiUrl, {
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+          
+          console.log('Response status:', signedUrlResponse.status);
+          const responseText = await signedUrlResponse.text();
+          console.log('Response text:', responseText);
+          
+          let responseData;
+          try {
+            responseData = JSON.parse(responseText);
+            console.log('Parsed response:', responseData);
+          } catch (e) {
+            console.error('Failed to parse response as JSON:', e);
+            throw new Error('Invalid response from server');
+          }
+          
+          if (!signedUrlResponse.ok) {
+            throw new Error(responseData.detail || 'Failed to get signed URL');
+          }
+          
+          // if (!responseData.signed_url) {
+          //   throw new Error('No signed_url in response');
+          // }
+          
+          console.log('Setting profile pic with URL:', responseData.authenticatedUrl);
+          setProfilePic(responseData.authenticatedUrl);
+          
+          if (errors.profilePic) {
+            setErrors({ ...errors, profilePic: undefined });
+          }
+        } catch (error) {
+          console.error('Error in profile pic update:', error);
+          showError(error instanceof Error ? error.message : 'Failed to update profile picture');
+          setProfilePic(initialProfilePic);
         }
       }
     } catch (error) {
