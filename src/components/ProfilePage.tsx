@@ -1,21 +1,27 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenSize } from '../lib/useScreenSize';
-import whiteGraphURL from '../assets/graph_icon.svg';
-import groupIconURL from '../assets/group_icon.svg';
+import defaultAvatar from '../assets/images/default-avatar.png';
+const initialProfilePic = defaultAvatar;
 
-// Dummy data and assets
-const initialProfilePic = '/images/default-avatar.png';
+// Function to format phone number to E.164 format
+const formatPhoneToE164 = (phoneNumber: string): string => {
+  // Remove all non-digit characters
+  const formattedPhone = phoneNumber.replace(/\D/g, '');
+  // Add country code if not present
+  return formattedPhone.startsWith('1') ? `+${formattedPhone}` : `+1${formattedPhone}`;
+};
 
 interface ProfilePageProps {
   initialData?: {
     name?: string;
     bio?: string;
-    connections?: string[];
+    connections?: Array<{ position: string; location: string }> | string[];
     enhanceWithAI?: boolean;
     profilePic?: string;
     location?: string;
     age?: number;
+    phone?: string;
   };
   onSubmit: (data: any) => void;
   onBack: () => void;
@@ -24,7 +30,6 @@ interface ProfilePageProps {
 const ProfilePage: React.FC<ProfilePageProps> = ({ 
   initialData = {}, 
   onSubmit 
-  // onBack is not used but kept in the props interface for future use
 }) => {
   const { isMobile } = useScreenSize();
   const [isLoading] = useState(false);
@@ -36,22 +41,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   const nameParts = (initialData.name || '').split(' ');
   const [firstName, setFirstName] = useState(nameParts[0] || '');
   const [lastName, setLastName] = useState(nameParts.slice(1).join(' ') || '');
+  const [phoneNumber, setPhoneNumber] = useState(initialData.phone || '');
   const [userAge, setUserAge] = useState<number | undefined>(initialData.age);
   const [userLocation, setUserLocation] = useState(initialData.location || '');
   const [description, setDescription] = useState(initialData.bio || '');
   const [connections, setConnections] = useState(initialData.connections || ['', '', '']);
   const [enhanceWithAI, setEnhanceWithAI] = useState(initialData.enhanceWithAI !== false);
   const [profilePic, setProfilePic] = useState(initialData.profilePic || initialProfilePic);
-  // Color is used in the getBackgroundColor function
-  const [color] = useState(Math.floor(Math.random() * 5)); // Random color for avatar
-  
-  // UI state
-  const [showGraphModal, setShowGraphModal] = useState(false);
-  const [showJoinModal, setShowJoinModal] = useState(false);
-  // State to track if an image is being uploaded
+  const [color] = useState(Math.floor(Math.random() * 5));
   const [isUploading, setIsUploading] = useState(false);
   
-  // Helper function to show error messages
   const showError = (message: string) => {
     // Create a simple red alert for errors
     const errorDiv = document.createElement('div');
@@ -82,6 +81,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     name?: string;
     firstName?: string;
     lastName?: string;
+    phone?: string;
     age?: string;
     location?: string;
     bio?: string;
@@ -168,6 +168,34 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     }
   };
 
+  // Format phone number as user types
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value.replace(/\D/g, '');
+    if (input.length <= 10) {
+      let formatted = input;
+      if (input.length > 3) {
+        formatted = `(${input.slice(0, 3)}) ${input.slice(3)}`;
+      }
+      if (input.length > 6) {
+        formatted = `(${input.slice(0, 3)}) ${input.slice(3, 6)} - ${input.slice(6)}`;
+      }
+      setPhoneNumber(formatted);
+      if (errors.phone) {
+        setErrors({...errors, phone: undefined});
+      }
+    }
+  };
+
+  // Validate phone number
+  const validatePhoneNumber = (): boolean => {
+    // Remove all non-digits and check if we have 10 digits
+    const digitsOnly = phoneNumber.replace(/\D/g, '');
+    if (digitsOnly.length !== 10) {
+      return false;
+    }
+    return true;
+  };
+
   // Form validation function
   const validateForm = () => {
     // Reset errors
@@ -184,6 +212,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     
     if (!lastName.trim()) {
       newErrors.lastName = 'Last name is required';
+      hasErrors = true;
+    }
+    
+    // Phone validation
+    if (!validatePhoneNumber()) {
+      newErrors.phone = 'Please enter a valid 10-digit phone number';
       hasErrors = true;
     }
     
@@ -219,12 +253,21 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     
     // Check connections
     const connectionErrors = connections.map((connection) => {
-      if (!connection.trim()) {
-        hasErrors = true;
-        return 'Please add someone you know';
-      } else if (connection.trim().length < 10) {
-        hasErrors = true;
-        return 'Please enter at least 10 characters';
+      // Handle both string and object types
+      if (typeof connection === 'string') {
+        if (!connection.trim()) {
+          hasErrors = true;
+          return 'Please add someone you know';
+        } else if (connection.trim().length < 10) {
+          hasErrors = true;
+          return 'Please enter at least 10 characters';
+        }
+      } else if (typeof connection === 'object' && connection !== null) {
+        // For object type connections (position/location format)
+        if (!connection.position || !connection.location) {
+          hasErrors = true;
+          return 'Please complete both position and location';
+        }
       }
       return '';
     });
@@ -244,14 +287,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
       const profileData = {
         // Format name as an object with first and last name
         name: {"first": firstName, "last": lastName},
+        // Pass phone number in E.164 format
+        phone: formatPhoneToE164(phoneNumber),
         // Pass age as a number
         age: userAge,
         // Pass location as a string
         location: userLocation,
         // Pass bio as a string
         bio: description,
-        // Filter out empty connections and pass as groups array
-        groups: connections.filter(c => c.trim()),
         // These fields are used by the UI but not sent to the backend
         enhanceWithAI,
         profilePic: profilePic,
@@ -280,595 +323,589 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   };
   
   return (
-    <div className="min-h-screen bg-white p-4 flex flex-col items-center justify-center overflow-hidden">
-      <div className="w-full max-w-2xl mx-auto overflow-hidden">
-        <motion.h1 
-          className="text-4xl font-medium text-center"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          style={{ fontFamily: 'SF Pro, system-ui, sans-serif' }}
-        >
-          Let's make your profile.
-        </motion.h1>
-        <motion.p 
-          className="text-center text-gray-500 mt-2 mb-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          style={{ fontFamily: 'SF Pro, system-ui, sans-serif' }}
-        >
-          Tell your AI friend who you are and who you know.
-        </motion.p>
-
+    <div className="min-h-screen bg-white p-4 flex flex-col items-center justify-center">
+      <div className="w-full max-w-2xl mx-auto">  
         <div
-          className="bg-[#F2F2F7] mx-auto flex flex-col overflow-auto"
+          className="bg-[#F2F2F7] mx-auto flex flex-col"
           style={{
             width: '100%',
-            maxWidth: 460,
+            maxWidth: 400,
             borderRadius: 15,
             paddingBottom: 20,
           }}
         >
-            {/* Gray box with rounded top corners */}
+          {/* Gray box with rounded top corners */}
+          <div
+            className="relative flex flex-col items-center"
+            style={{
+              width: '100%',
+              height: 350, // Reduced height for the header section
+              background: 'rgba(210, 210, 210, 0.85)',
+              borderTopLeftRadius: 15,
+              borderTopRightRadius: 15,
+            }}
+          >
+            {/* Background image */}
+            {profilePic && (
+              <div 
+                className="absolute inset-0 bg-cover bg-center z-0"
+                style={{
+                  backgroundImage: `url(${profilePic})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              />
+            )}
+            {/* Upload button - centered in the upper portion */}
+            <div className="flex justify-center mt-32 relative z-10">
+              <label 
+                htmlFor="profile-photo-upload"
+                className="flex items-center justify-center rounded-full cursor-pointer transition-all duration-200 hover:bg-opacity-80 hover:shadow-lg"
+                style={{
+                  background: errors.profilePic ? '#FEF2F2' : '#D9D9D9',
+                  borderRadius: 24,
+                  width: 190,
+                  height: 40,
+                  fontFamily: 'SF Pro, system-ui, sans-serif',
+                  fontWeight: 600,
+                  fontSize: 14,
+                  color: errors.profilePic ? '#ef4444' : '#222',
+                  border: errors.profilePic ? '2px solid #ef4444' : '2px solid #AAAAAA',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{marginRight: 8}}>
+                  <path d="M12 16V6M12 6L7 11M12 6L17 11" stroke={errors.profilePic ? "#ef4444" : "#222"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="8" y1="18" x2="16" y2="18" stroke={errors.profilePic ? "#ef4444" : "#222"} strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                {isUploading ? 'Uploading...' : 'Upload'}
+                <input
+                  id="profile-photo-upload"
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoUpload}
+                  disabled={isUploading || isLoading}
+                />
+              </label>
+            </div>
+          </div>
+
+          {/* Form content container */}
+          <div className="flex flex-col w-full gap-4 px-5 py-1 mt-2">
+            {/* Name inputs card */}
             <div
-              className="relative flex flex-col items-center overflow-hidden"
+              className="w-full bg-white rounded-xl flex items-center px-4 py-3 gap-4"
               style={{
-                width: '100%',
-                height: 350, // Reduced height for the header section
-                background: 'rgba(210, 210, 210, 0.85)',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
-                borderTopLeftRadius: 15,
-                borderTopRightRadius: 15,
+                boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                fontFamily: 'SF Pro, system-ui, sans-serif'
               }}
             >
-              {/* Background image */}
-              {profilePic && profilePic !== initialProfilePic && (
-                <div 
-                  className="absolute inset-0 bg-cover bg-center z-0"
-                  style={{
-                    backgroundImage: `url(${profilePic})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    opacity: 0.7
-                  }}
-                />
-              )}
-              {/* Dark overlay */}
-              <div className="absolute inset-0 bg-black/10 z-0" />
-              {/* Upload button - centered in the upper portion */}
-              <div className="flex justify-center mt-32 relative z-10">
-                <label 
-                  htmlFor="profile-photo-upload"
-                  className="flex items-center justify-center rounded-full cursor-pointer transition-all duration-200 hover:bg-opacity-80 hover:shadow-lg"
-                  style={{
-                    background: errors.profilePic ? '#FEF2F2' : '#D9D9D9',
-                    borderRadius: 24,
-                    width: 190,
-                    height: 40,
-                    fontFamily: 'SF Pro, system-ui, sans-serif',
-                    fontWeight: 600,
-                    fontSize: 14,
-                    color: errors.profilePic ? '#ef4444' : '#222',
-                    border: errors.profilePic ? '2px solid #ef4444' : '2px solid #AAAAAA',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.25)'
-                  }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{marginRight: 8}}>
-                    <path d="M12 16V6M12 6L7 11M12 6L17 11" stroke={errors.profilePic ? "#ef4444" : "#222"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <line x1="8" y1="18" x2="16" y2="18" stroke={errors.profilePic ? "#ef4444" : "#222"} strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                  {isUploading ? 'Uploading...' : 'Upload'}
-                  <input
-                    id="profile-photo-upload"
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handlePhotoUpload}
-                    disabled={isUploading || isLoading}
-                  />
-                </label>
-              </div>
-              
-              {/* Graph and Join buttons row */}
-              <div className="flex justify-center gap-4 mt-24 relative z-10">
-                {/* Join button */}
-                <button
-                  className="bg-[#4F4F4F] flex flex-col items-center justify-center rounded-xl shadow-md transition-colors duration-200 hover:bg-[#666666] active:bg-[#333333]"
-                  style={{ width: 75, height: 63, padding: 0, border: 'none' }}
-                  onClick={() => setShowJoinModal(true)}
-                >
-                  <img src={whiteGraphURL} alt="graph icon" width={28} height={23} className="mb-1" />
-                  <span className="text-[13px] text-white font-medium font-['SF_Pro',system-ui,sans-serif]">graph</span>
-                </button>
-                
-                {/* Graph button */}
-                <button
-                  className="bg-[#4F4F4F] flex flex-col items-center justify-center rounded-xl shadow-md transition-colors duration-200 hover:bg-[#666666] active:bg-[#333333]"  
-                  style={{ width: 75, height: 63, border: 'none'}}
-                  onClick={() => setShowGraphModal(true)}
-                >
-                  <img src={groupIconURL} alt="join icon" width={28} height={23} className="mb-1" />
-                  <span className="text-[13px] text-white font-medium font-['SF_Pro',system-ui,sans-serif]">join</span>
-                </button>
-              </div>
-            </div>
-
-            {showJoinModal && (
-              <motion.div 
-                className="fixed inset-0 z-50 flex items-center justify-center shadow-lg"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                onClick={() => setShowJoinModal(false)}
-              >
-                <motion.div 
-                  className="absolute inset-0 bg-black/60"
-                  transition={{ duration: 0.3 }}
-                />
-                <motion.div 
-                  className="relative bg-white/95 backdrop-blur-md rounded-2xl py-4 px-2 max-w-xs w-[80%] mx-auto shadow-xl"
-                  initial={{ scale: 0.95, y: 10, opacity: 0 }}
-                  animate={{ scale: 1, y: 0, opacity: 1 }}
-                  exit={{ scale: 0.95, y: 10, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: 'easeOut' }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="text-center">
-                    <p className="text-lg font-semibold mb-2 font-['SF_Pro','SF_Pro',system-ui,sans-serif]">"Graph" predicts the <br></br>types of people in your <br></br>warm network</p>
-                    <hr className="border-t border-gray-200 w-full mt-4" />
-                    <button 
-                      className="w-full mt-2 text-center text-blue-500 font-medium text-lg font-['SF_Pro','SF_Pro',system-ui,sans-serif]"
-                      onClick={() => setShowJoinModal(false)}
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-
-            {showGraphModal && (
-              <motion.div 
-                className="fixed inset-0 z-50 flex items-center justify-center shadow-lg"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                onClick={() => setShowGraphModal(false)}
-              >
-                <motion.div 
-                  className="absolute inset-0 bg-black/60"
-                  transition={{ duration: 0.3 }}
-                />
-                <motion.div 
-                  className="relative bg-white/95 backdrop-blur-md rounded-2xl py-4 px-2 max-w-xs w-[90%] mx-auto shadow-xl"
-                  initial={{ scale: 0.95, y: 10, opacity: 0 }}
-                  animate={{ scale: 1, y: 0, opacity: 1 }}
-                  exit={{ scale: 0.95, y: 10, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: 'easeOut' }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="text-center">
-                    <p className="text-lg font-semibold mb-2 font-['SF_Pro','SF_Pro',system-ui,sans-serif]">"Join" allows someone<br></br> not on Series to join an <br></br>existing groupchat</p>
-                    <hr className="border-t border-gray-200 w-full mt-4" />
-                    <button 
-                      className="w-full mt-2 text-center text-blue-500 font-medium text-lg font-['SF_Pro','SF_Pro',system-ui,sans-serif]"
-                      onClick={() => setShowGraphModal(false)}
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-
-            {/* Form content container */}
-            <div className="flex flex-col w-full gap-4 px-5 py-1 mt-2">
-              {/* Name inputs card */}
               <div
-                className="w-full bg-white rounded-xl flex items-center px-4 py-3 gap-4"
+                className="w-7 h-7 rounded-full flex-shrink-0 mr-1"
                 style={{
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
-                  fontFamily: 'SF Pro, system-ui, sans-serif'
+                  background: getBackgroundColor(color),
                 }}
-              >
-                <div
-                  className="w-7 h-7 rounded-full flex-shrink-0 mr-1"
-                  style={{
-                    background: getBackgroundColor(color),
-                  }}
-                />
-                <div className="flex w-full gap-6">
-                  {/* First Name Input */}
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      value={firstName}
-                      onChange={e => {
-                        setFirstName(e.target.value);
-                        // Clear error when user starts typing
-                        if (errors.firstName) {
-                          setErrors({...errors, firstName: undefined});
-                        }
-                      }}
-                      placeholder="First name"
-                      className={`${isMobile ? 'series-shadow series-placeholder' : ''} placeholder:italic`}
-                      style={{
-                        width: '100%',
-                        height: 32,
-                        borderRadius: 8,
-                        fontFamily: 'SF Pro, system-ui, sans-serif',
-                        fontWeight: 400,
-                        fontSize: 13,
-                        paddingLeft: 10,
-                        outline: 'none',
-                        color: '#222',
-                        transition: 'all 0.2s',
-                        border: errors.firstName ? '2px solid #ef4444' : '1px solid #ccc',
-                        backgroundColor: errors.firstName ? '#FEF2F2' : 'white',
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
-                      }}
-                      onFocus={e => {
-                        if (!errors.firstName) {
-                          e.target.style.borderWidth = '0.5px';
-                        }
-                      }}
-                      onBlur={e => {
-                        if (!errors.firstName) {
-                          e.target.style.borderWidth = '1px';
-                        }
-                      }}
-                      disabled={isLoading}
-                    />
-                    {errors.firstName && (
-                      <p className="text-[0.5rem] text-red-600 absolute">{errors.firstName}</p>
-                    )}
-                  </div>
-                  
-                  {/* Last Name Input */}
-                  <div className="relative flex-1">
-                    <input
-                      type="text"
-                      value={lastName}
-                      onChange={e => {
-                        setLastName(e.target.value);
-                        // Clear error when user starts typing
-                        if (errors.lastName) {
-                          setErrors({...errors, lastName: undefined});
-                        }
-                      }}
-                      placeholder="Last name"
-                      className={`${isMobile ? 'series-shadow series-placeholder' : ''} placeholder:italic`}
-                      style={{
-                        width: '100%',
-                        height: 32,
-                        borderRadius: 8,
-                        fontFamily: 'SF Pro, system-ui, sans-serif',
-                        fontWeight: 400,
-                        fontSize: 13,
-                        paddingLeft: 10,
-                        outline: 'none',
-                        color: '#222',
-                        transition: 'all 0.2s',
-                        border: errors.lastName ? '2px solid #ef4444' : '1px solid #ccc',
-                        backgroundColor: errors.lastName ? '#FEF2F2' : 'white',
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
-                      }}
-                      onFocus={e => {
-                        if (!errors.lastName) {
-                          e.target.style.borderWidth = '0.5px';
-                        }
-                      }}
-                      onBlur={e => {
-                        if (!errors.lastName) {
-                          e.target.style.borderWidth = '1px';
-                        }
-                      }}
-                      disabled={isLoading}
-                    />
-                    {errors.lastName && (
-                      <p className="text-[0.5rem] text-red-600 absolute">{errors.lastName}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Age and Location fields in a white box */}
-              <div
-                className="w-full bg-white rounded-xl flex items-center px-4 py-3"
-                style={{
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
-                  fontFamily: 'SF Pro, system-ui, sans-serif'
-                }}
-              >
-                {/* Age Label */}
-                <span style={{ color: '#111', fontWeight: 600, fontSize: 16, marginRight: 8 }}>Age: </span>
-                
-                {/* Age Select */}
-                <div className="w-14 mr-8">
-                  <select
-                    value={userAge || ''}
-                    onChange={e => {
-                      setUserAge(e.target.value ? parseInt(e.target.value) : undefined);
-                      if (errors.age) {
-                        setErrors({...errors, age: undefined});
-                      }
-                    }}
-                    className={`w-full h-8 rounded-md border ${errors.age ? 'border-red-500' : 'border-gray-300'} bg-white px-2 text-sm focus:outline-none focus:ring-1 focus:ring-black`}
-                    style={{
-                      fontFamily: 'SF Pro, system-ui, sans-serif',
-                      color: userAge ? '#222' : '#ABABAB',
-                      fontStyle: userAge ? 'normal' : 'italic',
-                      backgroundColor: errors.age ? '#FEF2F2' : 'white',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
-                    }}
-                    disabled={isLoading}
-                  >
-                    <option value="" disabled style={{ display: 'none' }}>##</option>
-                    {Array.from({length: 52}, (_, i) => i + 14).map(age => (
-                      <option key={age} value={age}>{age}</option>
-                    ))}
-                  </select>
-                  {errors.age && (
-                    <p className="absolute text-[0.5rem] text-red-600">{errors.age}</p>
-                  )}
-                </div>
-                
-                {/* Location Label */}
-                <span style={{ color: '#111', fontWeight: 600, fontSize: 16, marginRight: 12 }}>Location: </span>
-                
-                {/* Location Input */}
+              />
+              <div className="flex w-full gap-6">
+                {/* First Name Input */}
                 <div className="flex-1">
                   <input
                     type="text"
-                    value={userLocation}
+                    value={firstName}
                     onChange={e => {
-                      setUserLocation(e.target.value);
-                      if (errors.location) {
-                        setErrors({...errors, location: undefined});
-                      }
-                    }}
-                    placeholder="New York, NY"
-                    className={`w-full h-8 rounded-md border ${errors.location ? 'border-red-500' : 'border-gray-300'} bg-white px-2 text-sm focus:outline-none focus:ring-1 focus:ring-black placeholder:italic`}
-                    style={{
-                      fontFamily: 'SF Pro, system-ui, sans-serif',
-                      color: '#222',
-                      backgroundColor: errors.location ? '#FEF2F2' : 'white',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
-                    }}
-                    disabled={isLoading}
-                  />
-                  {errors.location && (
-                    <p className="absolute text-[0.5rem] text-red-600">{errors.location}</p>
-                  )}
-                </div>
-              </div>
-              
-              {/* Bio section */}
-              <div
-                className="w-full bg-white rounded-xl flex flex-col items-start px-4 py-4 gap-1"
-                style={{
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
-                  fontFamily: 'SF Pro, system-ui, sans-serif'
-                }}
-              >
-                <span style={{ color: '#111', fontWeight: 600, fontSize: 16 }}>Me:</span>
-                <div className="relative w-full">
-                  <input
-                    value={description}
-                    onChange={e => {
-                      setDescription(e.target.value);
+                      setFirstName(e.target.value);
                       // Clear error when user starts typing
-                      if (errors.bio) {
-                        setErrors({...errors, bio: undefined});
+                      if (errors.firstName) {
+                        setErrors({...errors, firstName: undefined});
                       }
                     }}
-                    placeholder="student @ Columbia building the next fintech unicorn"
-                    className={`${isMobile ? 'series-shadow series-placeholder' : ''} w-full p-2 rounded-lg border resize-none placeholder:italic`}
+                    placeholder="First name"
+                    className={`${isMobile ? 'series-shadow series-placeholder' : ''} placeholder:italic`}
                     style={{
+                      width: '100%',
+                      height: 32,
+                      borderRadius: 8,
                       fontFamily: 'SF Pro, system-ui, sans-serif',
+                      fontWeight: 400,
                       fontSize: 13,
+                      paddingLeft: 10,
                       outline: 'none',
                       color: '#222',
                       transition: 'all 0.2s',
-                      border: errors.bio ? '2px solid #ef4444' : '1px solid #ccc',
-                      backgroundColor: errors.bio ? '#FEF2F2' : 'white',
+                      border: errors.firstName ? '2px solid #ef4444' : '1px solid #ccc',
+                      backgroundColor: errors.firstName ? '#FEF2F2' : 'white',
                       boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
                     }}
                     onFocus={e => {
-                      if (!errors.bio) {
+                      if (!errors.firstName) {
                         e.target.style.borderWidth = '0.5px';
                       }
                     }}
                     onBlur={e => {
-                      if (!errors.bio) {
+                      if (!errors.firstName) {
                         e.target.style.borderWidth = '1px';
                       }
                     }}
                     disabled={isLoading}
                   />
-                  {errors.bio && (
-                    <p className="text-[0.5rem] text-red-600 absolute">{errors.bio}</p>
+                  {errors.firstName && (
+                    <p className="text-[0.5rem] text-red-600 absolute">{errors.firstName}</p>
+                  )}
+                </div>
+                
+                {/* Last Name Input */}
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={e => {
+                      setLastName(e.target.value);
+                      // Clear error when user starts typing
+                      if (errors.lastName) {
+                        setErrors({...errors, lastName: undefined});
+                      }
+                    }}
+                    placeholder="Last name"
+                    className={`${isMobile ? 'series-shadow series-placeholder' : ''} placeholder:italic`}
+                    style={{
+                      width: '100%',
+                      height: 32,
+                      borderRadius: 8,
+                      fontFamily: 'SF Pro, system-ui, sans-serif',
+                      fontWeight: 400,
+                      fontSize: 13,
+                      paddingLeft: 10,
+                      outline: 'none',
+                      color: '#222',
+                      transition: 'all 0.2s',
+                      border: errors.lastName ? '2px solid #ef4444' : '1px solid #ccc',
+                      backgroundColor: errors.lastName ? '#FEF2F2' : 'white',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
+                    }}
+                    onFocus={e => {
+                      if (!errors.lastName) {
+                        e.target.style.borderWidth = '0.5px';
+                      }
+                    }}
+                    onBlur={e => {
+                      if (!errors.lastName) {
+                        e.target.style.borderWidth = '1px';
+                      }
+                    }}
+                    disabled={isLoading}
+                  />
+                  {errors.lastName && (
+                    <p className="text-[0.5rem] text-red-600 absolute">{errors.lastName}</p>
                   )}
                 </div>
               </div>
-              
-              {/* Who I know section */}
-              <div
-                className="w-full bg-white rounded-xl flex flex-col items-start px-4 py-4 gap-3 overflow-y-auto"
-                style={{
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
-                  maxHeight: 300, // Limit height and enable scrolling
-                  fontFamily: 'SF Pro, system-ui, sans-serif'
-                }}
-              >
-                <span style={{ color: '#111', fontWeight: 600, fontSize: 16 }}>Who I know:</span>
+            </div>
+            
+            
+          
+            {/* Bio section */}
+            <div
+              className="w-full bg-white rounded-xl flex flex-col items-start px-4 py-4 gap-1"
+              style={{
+                boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                fontFamily: 'SF Pro, system-ui, sans-serif'
+              }}
+            >
+              <span style={{ color: '#111', fontWeight: 600, fontSize: 16 }}>Me:</span>
+              <div className="relative w-full">
+                <input
+                  value={description}
+                  onChange={e => {
+                    setDescription(e.target.value);
+                    // Clear error when user starts typing
+                    if (errors.bio) {
+                      setErrors({...errors, bio: undefined});
+                    }
+                  }}
+                  placeholder="student @ Columbia building the next fintech unicorn"
+                  className={`${isMobile ? 'series-shadow series-placeholder' : ''} w-full p-2 rounded-lg border resize-none placeholder:italic`}
+                  style={{
+                    fontFamily: 'SF Pro, system-ui, sans-serif',
+                    fontSize: 13,
+                    outline: 'none',
+                    color: '#222',
+                    transition: 'all 0.2s',
+                    border: errors.bio ? '2px solid #ef4444' : '1px solid #ccc',
+                    backgroundColor: errors.bio ? '#FEF2F2' : 'white',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
+                  }}
+                  onFocus={e => {
+                    if (!errors.bio) {
+                      e.target.style.borderWidth = '0.5px';
+                    }
+                  }}
+                  onBlur={e => {
+                    if (!errors.bio) {
+                      e.target.style.borderWidth = '1px';
+                    }
+                  }}
+                  disabled={isLoading}
+                />
+                {errors.bio && (
+                  <p className="text-[0.5rem] text-red-600 absolute">{errors.bio}</p>
+                )}
+              </div>
+            </div>
+            
+            {/* Who I know section */}
+            {/* <div
+              className="w-full bg-white rounded-xl flex flex-col items-start px-4 py-4 gap-3 overflow-y-auto"
+              style={{
+                boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                maxHeight: 300, // Limit height and enable scrolling
+                fontFamily: 'SF Pro, system-ui, sans-serif'
+              }}
+            >
+              <span style={{ color: '#111', fontWeight: 600, fontSize: 16 }}>Who I know:</span>
+                */}
+              {/* Connection inputs with X buttons */}
+              {/* {connections.map((connection, index) => {
+                const hasError = errors.connections && errors.connections[index];
                 
-                {/* Connection inputs with X buttons */}
-                {connections.map((connection, index) => {
-                  const hasError = errors.connections && errors.connections[index];
-                  
-                  return (
-                    <div key={index} className="relative w-full flex items-center mb-2">
-                      <input
-                        type="text"
-                        value={connection}
-                        onChange={e => {
-                          const newConnections = [...connections];
-                          newConnections[index] = e.target.value;
-                          setConnections(newConnections);
-                          
-                          // Clear error when user starts typing
-                          if (errors.connections && errors.connections[index]) {
-                            const newConnectionErrors = [...(errors.connections || [])];
-                            newConnectionErrors[index] = '';
-                            setErrors({
-                              ...errors, 
-                              connections: newConnectionErrors.some(e => e) ? newConnectionErrors : undefined
-                            });
-                          }
-                        }}
-                      placeholder={[
-                        'new york area student entrepeneurs in SaaS and healthtech',
-                        'the founders of Prod',
-                        'friends and family investors'
-                      ][index % 3]}
-                        className={`${isMobile ? 'series-shadow series-placeholder' : ''} w-full placeholder:italic`}
-                        style={{
-                          height: 36,
-                          borderRadius: 8,
-                          fontFamily: 'SF Pro, system-ui, sans-serif',
-                          fontWeight: 400,
-                          fontSize: 13,
-                          paddingLeft: 10,
-                          paddingRight: 30,
-                          outline: 'none',
-                          color: '#222',
-                          transition: 'all 0.2s',
-                          border: hasError ? '2px solid #ef4444' : '1px solid #ccc',
-                          backgroundColor: hasError ? '#FEF2F2' : 'white',
-                          boxShadow: hasError ? '0 0 0 2px rgba(239, 68, 68, 0.2)' : '0 2px 6px rgba(0,0,0,0.12)'
-                        }}
-                        onFocus={e => {
-                          e.target.style.borderWidth = hasError ? '2px' : '1px';
-                          e.target.style.boxShadow = hasError 
-                            ? '0 0 0 3px rgba(239, 68, 68, 0.3)' 
-                            : '0 0 0 3px rgba(59, 130, 246, 0.3)';
-                        }}
-                        onBlur={e => {
-                          e.target.style.borderWidth = hasError ? '2px' : '1px';
-                          e.target.style.boxShadow = hasError 
-                            ? '0 0 0 2px rgba(239, 68, 68, 0.2)' 
-                            : '0 2px 6px rgba(0,0,0,0.12)';
-                        }}
-                        disabled={isLoading}
-                      />
-                      
-                      {hasError && errors.connections && (
-                        <p className="text-[0.5rem] text-red-600 absolute bottom-[-1rem] left-0">
-                          {errors.connections[index]}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
+                return (
+                  <div key={index} className="relative w-full flex items-center mb-2">
+                    <input
+                      type="text"
+                      value={connection}
+                      onChange={e => {
+                        const newConnections = [...connections];
+                        newConnections[index] = e.target.value;
+                        setConnections(newConnections);
+                        
+                        // Clear error when user starts typing
+                        if (errors.connections && errors.connections[index]) {
+                          const newConnectionErrors = [...(errors.connections || [])];
+                          newConnectionErrors[index] = '';
+                          setErrors({
+                            ...errors, 
+                            connections: newConnectionErrors.some(e => e) ? newConnectionErrors : undefined
+                          });
+                        }
+                      }}
+                    placeholder={[
+                      'new york area student entrepeneurs in SaaS and healthtech',
+                      'the founders of Prod',
+                      'friends and family investors'
+                    ][index % 3]}
+                      className={`${isMobile ? 'series-shadow series-placeholder' : ''} w-full placeholder:italic`}
+                      style={{
+                        height: 36,
+                        borderRadius: 8,
+                        fontFamily: 'SF Pro, system-ui, sans-serif',
+                        fontWeight: 400,
+                        fontSize: 13,
+                        paddingLeft: 10,
+                        paddingRight: 30,
+                        outline: 'none',
+                        color: '#222',
+                        transition: 'all 0.2s',
+                        border: hasError ? '2px solid #ef4444' : '1px solid #ccc',
+                        backgroundColor: hasError ? '#FEF2F2' : 'white',
+                        boxShadow: hasError ? '0 0 0 2px rgba(239, 68, 68, 0.2)' : '0 2px 6px rgba(0,0,0,0.12)'
+                      }}
+                      onFocus={e => {
+                        e.target.style.borderWidth = hasError ? '2px' : '1px';
+                        e.target.style.boxShadow = hasError 
+                          ? '0 0 0 3px rgba(239, 68, 68, 0.3)' 
+                          : '0 0 0 3px rgba(59, 130, 246, 0.3)';
+                      }}
+                      onBlur={e => {
+                        e.target.style.borderWidth = hasError ? '2px' : '1px';
+                        e.target.style.boxShadow = hasError 
+                          ? '0 0 0 2px rgba(239, 68, 68, 0.2)' 
+                          : '0 2px 6px rgba(0,0,0,0.12)';
+                      }}
+                      disabled={isLoading}
+                    />
+                    
+                    {hasError && errors.connections && (
+                      <p className="text-[0.5rem] text-red-600 absolute bottom-[-1rem] left-0">
+                        {errors.connections[index]}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div> */}
+
+            {/* AI Toggle - Copied from QuestionnaireOnboarding
+            <motion.div 
+              className="flex items-center justify-center w-full"
+            >
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer"
+                  checked={enhanceWithAI}
+                  onChange={() => setEnhanceWithAI(prev => !prev)}
+                  id="ai-toggle"
+                />
+                <motion.div 
+                  className="w-7 h-4 bg-white-100 rounded-full peer dark:bg-gray-400 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-100 after:border after:rounded-full after:h-3 after:w-3 after:transition-all dark:border-gray-100 peer-checked:bg-black"
+                  whileTap={{ scale: 0.95 }}
+                  style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+                />
+                <motion.span 
+                  className="ms-3 text-xs font-medium text-gray-900 whitespace-nowrap"
+                  whileHover={{ scale: 1.02 }}
+                  style={{ fontFamily: 'SF Pro, system-ui, sans-serif' }}
+                >
+                  Enhance your profile with AI
+                </motion.span>
+              </label>
+            </motion.div> */}
+          </div>
+        </div>
+
+        
+        <div className="mx-auto mt-16 flex flex-col items-center" style={{ width: '100%', maxWidth: 400 }}>
+          <div className="justify-center items-center flex w-full mb-4">
+            <p className="italic text-gray-500 text-center" style={{ fontFamily: 'SF Pro, system-ui, sans-serif', fontSize: 13 }}>
+              In order to connect you with your AI friend, we'll also need:
+            </p>
+          </div>
+          
+          <div className="w-full flex flex-col gap-4">
+
+
+            {/* Phone Number field in a white box */}
+            <div
+              className="w-full bg-white rounded-xl flex items-center px-4 py-3"
+              style={{
+                boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                fontFamily: 'SF Pro, system-ui, sans-serif'
+              }}
+            >
+              {/* Phone Label */}
+              <span style={{ color: '#111', fontWeight: 600, fontSize: 16, marginRight: 8 }}>Phone: </span>
+              
+              {/* Phone Input */}
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  value={phoneNumber}
+                  onChange={handlePhoneChange}
+                  placeholder="(999) 999 - 9999"
+                  className={`w-full h-8 rounded-md border ${errors.phone ? 'border-red-500' : 'border-gray-300'} bg-white px-2 text-sm focus:outline-none focus:ring-1 focus:ring-black placeholder:italic`}
+                  style={{
+                    fontFamily: 'SF Pro, system-ui, sans-serif',
+                    color: '#222',
+                    backgroundColor: errors.phone ? '#FEF2F2' : 'white',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
+                  }}
+                  disabled={isLoading}
+                />
+                {errors.phone && (
+                  <p className="absolute text-[0.5rem] text-red-600">{errors.phone}</p>
+                )}
+              </div>
+              
+              {/* Info icon with tooltip */}
+              <div className="relative inline-block ml-2 group">
+                <div 
+                  className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center cursor-help transition-colors hover:bg-gray-200"
+                  style={{ fontSize: '11px', color: '#555' }}
+                >
+                  i
+                </div>
+                <div 
+                  className="absolute opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none"
+                  style={{
+                    zIndex: 100,
+                    width: '11rem',
+                    padding: '0.6rem',
+                    background: 'rgba(0,0,0,0.85)',
+                    color: 'white',
+                    borderRadius: '0.4rem',
+                    fontSize: '0.75rem',
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.15)',
+                    left: 'calc(100% + 10px)',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    whiteSpace: 'normal',
+                    lineHeight: '1.3',
+                    backdropFilter: 'blur(4px)'
+                  }}
+                >
+                  Your phone number is needed to text with your AI friend on iMessage. It's stored securely and never displayed on your profile.
+                </div>
+              </div>
+            </div>
+            
+            {/* Age and Location fields in a white box */}
+            <div
+              className="w-full bg-white rounded-xl flex items-center px-4 py-3"
+              style={{
+                boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                fontFamily: 'SF Pro, system-ui, sans-serif'
+              }}
+            >
+              {/* Age Label */}
+              {/* <span style={{ color: '#111', fontWeight: 600, fontSize: 16, marginRight: 8 }}>Age: </span> */}
+              
+              {/* Age Select */}
+              {/* <div className="w-14 mr-8">
+                <select
+                  value={userAge || ''}
+                  onChange={e => {
+                    setUserAge(e.target.value ? parseInt(e.target.value) : undefined);
+                    if (errors.age) {
+                      setErrors({...errors, age: undefined});
+                    }
+                  }}
+                  className={`w-full h-8 rounded-md border ${errors.age ? 'border-red-500' : 'border-gray-300'} bg-white px-2 text-sm focus:outline-none focus:ring-1 focus:ring-black`}
+                  style={{
+                    fontFamily: 'SF Pro, system-ui, sans-serif',
+                    color: userAge ? '#222' : '#ABABAB',
+                    fontStyle: userAge ? 'normal' : 'italic',
+                    backgroundColor: errors.age ? '#FEF2F2' : 'white',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
+                  }}
+                  disabled={isLoading}
+                >
+                  <option value="" disabled style={{ display: 'none' }}>##</option>
+                  {Array.from({length: 52}, (_, i) => i + 14).map(age => (
+                    <option key={age} value={age}>{age}</option>
+                  ))}
+                </select>
+                {errors.age && (
+                  <p className="absolute text-[0.5rem] text-red-600">{errors.age}</p>
+                )}
+              </div> */}
+              
+              {/* Location Label */}
+              <span style={{ color: '#111', fontWeight: 600, fontSize: 16, marginRight: 8 }}>Location: </span>
+              
+              {/* Location Input */}
+              <div className="flex-1">
+                <input
+                  type="text"
+                  value={userLocation}
+                  onChange={e => {
+                    setUserLocation(e.target.value);
+                    if (errors.location) {
+                      setErrors({...errors, location: undefined});
+                    }
+                  }}
+                  placeholder="New York, NY"
+                  className={`w-full h-8 rounded-md border ${errors.location ? 'border-red-500' : 'border-gray-300'} bg-white px-2 text-sm focus:outline-none focus:ring-1 focus:ring-black placeholder:italic`}
+                  style={{
+                    fontFamily: 'SF Pro, system-ui, sans-serif',
+                    color: '#222',
+                    backgroundColor: errors.location ? '#FEF2F2' : 'white',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
+                  }}
+                  disabled={isLoading}
+                />
+                {errors.location && (
+                  <p className="absolute text-[0.5rem] text-red-600">{errors.location}</p>
+                )}
               </div>
 
-              {/* AI Toggle - Copied from QuestionnaireOnboarding */}
-              <motion.div 
-                className="flex items-center justify-center w-full"
-              >
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    className="sr-only peer"
-                    checked={enhanceWithAI}
-                    onChange={() => setEnhanceWithAI(prev => !prev)}
-                    id="ai-toggle"
-                  />
-                  <motion.div 
-                    className="w-7 h-4 bg-white-100 rounded-full peer dark:bg-gray-400 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-100 after:border after:rounded-full after:h-3 after:w-3 after:transition-all dark:border-gray-100 peer-checked:bg-black"
-                    whileTap={{ scale: 0.95 }}
-                    style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
-                  />
-                  <motion.span 
-                    className="ms-3 text-xs font-medium text-gray-900 whitespace-nowrap"
-                    whileHover={{ scale: 1.02 }}
-                    style={{ fontFamily: 'SF Pro, system-ui, sans-serif' }}
-                  >
-                    Enhance your profile with AI
-                  </motion.span>
-                </label>
-              </motion.div>
+              {/* Info icon with tooltip */}
+              <div className="relative inline-block ml-2 group">
+                <div 
+                  className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center cursor-help transition-colors hover:bg-gray-200"
+                  style={{ fontSize: '11px', color: '#555' }}
+                >
+                  i
+                </div>
+                <div 
+                  className="absolute opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none"
+                  style={{
+                    zIndex: 100,
+                    width: '11rem',
+                    padding: '0.6rem',
+                    background: 'rgba(0,0,0,0.85)',
+                    color: 'white',
+                    borderRadius: '0.4rem',
+                    fontSize: '0.75rem',
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.15)',
+                    left: 'calc(100% + 10px)',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    whiteSpace: 'normal',
+                    lineHeight: '1.3',
+                    backdropFilter: 'blur(4px)'
+                  }}
+                >
+                  Your location helps us connect you with more accurate local matches. It's stored securely and never shared on your profile.
+                </div>
+              </div>
             </div>
           </div>
-          <div className="w-full flex justify-center mt-4">
-            <AnimatePresence mode="wait">
-              {isLoading ? (
-                <motion.div
-                  key="loading"
-                  className="fixed inset-0 flex items-center justify-center bg-white z-40"
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                >
-                  <div className="flex items-center">
-                    <motion.span
-                      className="text-[10rem] font-bold leading-none inline-block relative"
-                    >
-                      S
-                    </motion.span>
-                    <motion.div
-                      className="w-20 h-4 overflow-hidden ml-4 relative -bottom-12"
-                      initial={{ scaleX: 0 }}
-                      animate={{ 
-                        scaleX: 1,
-                        transformOrigin: 'left center',
-                      }}
+        </div>
+
+        <div className="w-full flex justify-center mt-4">
+          <AnimatePresence mode="wait">
+            {isLoading ? (
+              <motion.div
+                key="loading"
+                className="fixed inset-0 flex items-center justify-center bg-white z-40"
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+              >
+                <div className="flex items-center">
+                  <motion.span
+                    className="text-[10rem] font-bold leading-none inline-block relative"
+                  >
+                    S
+                  </motion.span>
+                  <motion.div
+                    className="w-20 h-4 overflow-hidden ml-4 relative -bottom-12"
+                    initial={{ scaleX: 0 }}
+                    animate={{ 
+                      scaleX: 1,
+                      transformOrigin: 'left center',
+                    }}
+                    transition={{ 
+                      duration: 3,
+                      ease: "easeInOut",
+                      repeat: Infinity, 
+                      repeatType: "loop"
+                    }}
+                  >
+                    <motion.div 
+                      className="h-full bg-black absolute top-0 left-0"
+                      initial={{ width: '0%' }}
+                      animate={{ width: '100%' }}
                       transition={{ 
                         duration: 3,
-                        ease: "easeInOut",
-                        repeat: Infinity, 
-                        repeatType: "loop"
+                        ease: "easeInOut"
                       }}
-                    >
-                      <motion.div 
-                        className="h-full bg-black absolute top-0 left-0"
-                        initial={{ width: '0%' }}
-                        animate={{ width: '100%' }}
-                        transition={{ 
-                          duration: 3,
-                          ease: "easeInOut"
-                        }}
-                      />
-                    </motion.div>
-                  </div>
-                </motion.div>
-              ) : (
-                <button
-                  className={`${isLoading || isUploading ? 'bg-gray-400' : 'bg-black hover:bg-black/80'} text-white rounded-full flex items-center justify-center transition-colors`}
-                  style={{ 
-                    width: 120, 
-                    height: 48,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                    fontFamily: 'SF Pro, system-ui, sans-serif',
-                    cursor: (isLoading || isUploading) ? 'not-allowed' : 'pointer'
-                  }}
-                  onClick={!(isLoading || isUploading) ? handleButtonClick : undefined}
-                  disabled={isLoading || isUploading}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" stroke="white" />
-                  </svg>
-                </button>
-              )}
-            </AnimatePresence>
-          </div> 
+                    />
+                  </motion.div>
+                </div>
+              </motion.div>
+            ) : (
+              <button
+                className={`${isLoading || isUploading ? 'bg-gray-400' : 'bg-black hover:bg-black/80'} text-white rounded-full flex items-center justify-center transition-colors`}
+                style={{ 
+                  width: 120, 
+                  height: 48,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  fontFamily: 'SF Pro, system-ui, sans-serif',
+                  cursor: (isLoading || isUploading) ? 'not-allowed' : 'pointer'
+                }}
+                onClick={!(isLoading || isUploading) ? handleButtonClick : undefined}
+                disabled={isLoading || isUploading}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" stroke="white" />
+                </svg>
+              </button>
+            )}
+          </AnimatePresence>
+        </div> 
       </div>
     </div>
   );

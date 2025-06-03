@@ -1,10 +1,11 @@
 // src/pages/OnboardingPage.tsx
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import VideoPlayer from '../components/VideoPlayer.tsx';
 import ProfilePage from '../components/ProfilePage.tsx';
-import PhoneAuthPage from '../components/PhoneAuth.tsx';
+// import PhoneAuthPage from '../components/PhoneAuth.tsx';
+import ConnectionsGraph from './ConnectionsGraph.tsx';
 import WelcomePage from '../components/WelcomePage.tsx';
 
 type OnboardingData = {
@@ -13,11 +14,8 @@ type OnboardingData = {
     first: string;
     last: string;
   };
-  headline?: string;
   bio: string;
   location: string;
-  university?: string;
-  graduationYear?: string;
   // User groups/connections
   groups?: string[];
   // Age information
@@ -26,14 +24,15 @@ type OnboardingData = {
   color?: string;
   colorIndex?: number;
   // Phone auth data
-  phoneNumber: string;
-  verificationCode: string;
+  phone: string;
+  profilePic: string;
+  // User connections data
+  connections?: Array<{ position: string; location: string }>;
   // Other data we might collect
   [key: string]: any;
 };
 
 const OnboardingPage = () => {
-  const [searchParams] = useSearchParams();
   // Used for potential navigation to other routes
   const navigate = useNavigate();
   
@@ -41,7 +40,7 @@ const OnboardingPage = () => {
   const goToApp = () => {
     navigate('/app');
   };
-  const [step, setStep] = useState<'video' | 'profile' | 'phone' | 'complete' | 'loading'>('video');
+  const [step, setStep] = useState<'video' | 'profile' | 'connections' | 'complete' | 'loading'>('profile');
   const [userData, setUserData] = useState<Partial<OnboardingData>>({});
   const [userId, setUserId] = useState<string>('');
 
@@ -68,16 +67,20 @@ const OnboardingPage = () => {
         setStep('profile');
         break;
       case 'profile':
-        // Show loading screen first when transitioning from profile to phone
+        // Show loading screen first when transitioning from profile to connections
+        setStep('loading');
+        // Then after a short delay, show the connections graph page
+        setTimeout(() => {
+          setStep('connections');
+        }, 500); // Short delay to show loading screen
+        break;
+      case 'connections':
+        // Show loading screen first when transitioning from connections to phone
         setStep('loading');
         // Then after a short delay, show the phone auth page
         setTimeout(() => {
-          setStep('phone');
+          setStep('loading');
         }, 500); // Short delay to show loading screen
-        break;
-      case 'phone':
-        // Show loading screen while user is being created
-        setStep('loading');
         break;
       case 'loading':
         // After loading is complete, move to welcome page
@@ -94,11 +97,11 @@ const OnboardingPage = () => {
       case 'profile':
         setStep('video');
         break;
-      case 'phone':
+      case 'connections':
         setStep('profile');
         break;
       case 'complete':
-        setStep('phone');
+        setStep('connections');
         break;
       default:
         break;
@@ -153,27 +156,18 @@ const OnboardingPage = () => {
           </motion.div>
         )}
 
-        {step === 'phone' && (
+        {step === 'connections' && (
           <motion.div
-            key="phone"
+            key="connections"
             initial="enter"
             animate="animate"
             exit="exit"
             variants={pageVariants}
             transition={{ duration: 0.3 }}
           >
-            <PhoneAuthPage 
+            <ConnectionsGraph 
               userData={userData}
-              onSubmit={(userId) => {
-                setUserId(userId);
-                // Show loading screen first
-                setStep('loading');
-                // Then after a short delay, show the welcome page
-                setTimeout(() => {
-                  setStep('complete');
-                }, 2000); // 2 second delay to show loading screen
-              }}
-              onBack={goToPreviousStep}
+              onSubmit={(data) => goToNextStep(data)}
             />
           </motion.div>
         )}
