@@ -97,6 +97,16 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
       connections: connections
     });
     
+    // Update user properties with connection information
+    if (userData.phone) {
+      posthog.identify(userData.phone, {
+        $set: {
+          connections_count: connections.length,
+          connections: connections.map(c => `${c.position} at ${c.location}`).join(', ')
+        }
+      });
+    }
+    
     // If we have a phone number, create a user first
     if (userData.phone) {
       try {

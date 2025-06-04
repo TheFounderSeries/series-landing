@@ -442,6 +442,18 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
       age_provided: !!userAge
     });
     
+    // Identify the user with PostHog
+    const userId = phoneNumber ? formatPhoneToE164(phoneNumber) : `anonymous-${Date.now()}`;
+    posthog.identify(userId, {
+      name: `${firstName} ${lastName}`.trim(),
+      email: '', // Add email if you collect it
+      phone: phoneNumber ? formatPhoneToE164(phoneNumber) : '',
+      bio: description,
+      location: userLocation,
+      age: userAge,
+      $set_once: { first_seen: new Date().toISOString() }
+    });
+    
     // Call the onSubmit prop function to move to the connections page
     if (onSubmit) {
       console.log('Calling onSubmit function');
