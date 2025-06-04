@@ -1,8 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowUp } from 'lucide-react';
 import defaultAvatar from '../assets/images/default-avatar.png';
 import ForceGraph from '../components/ForceGraph';
+import { getApiUrl } from '../utils/api';
+import {
+  PageContainer,
+  ProgressBar,
+  SlideUpPanel,
+  PanelTitle,
+  InputGroup,
+  ConnectionInput,
+  FloatingActionButton
+} from '../components/ui';
+
 const initialProfilePic = defaultAvatar;
 
 interface ConnectionsGraphProps {
@@ -11,6 +20,9 @@ interface ConnectionsGraphProps {
       first: string;
       last: string;
     };
+    bio?: string;
+    location?: string;
+    phone?: string;
     profilePic?: string;
     [key: string]: any;
   };
@@ -18,13 +30,10 @@ interface ConnectionsGraphProps {
 }
 
 // ForceGraph component handles node and link interfaces internally
-
 const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSubmit }) => {
   // State for connections and inputs
   const [connections, setConnections] = useState<Array<{ position: string; location: string }>>([]);
   const [currentInput, setCurrentInput] = useState<'position' | 'location' | null>(null);
-  // Use a separate state for pane visibility that doesn't change with every input focus
-  const [isPaneVisible, setIsPaneVisible] = useState(false);
   const [positionInput, setPositionInput] = useState('');
   const [locationInput, setLocationInput] = useState('');
   const [progress, setProgress] = useState(0);
@@ -36,10 +45,15 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
 
   // Update progress when connections change
   useEffect(() => {
-    const progressValue = Math.min(connections.length / 3, 1);
+    const progressValue = Math.min(connections.length / 3 * 100, 100);
     setProgress(progressValue);
+    
+    // Show submit button and hide panel when we have 3+ connections
+    setShowSubmitButton(connections.length >= 3);
+    
+    // If we have 3 connections, clear the input panel
     if (connections.length >= 3) {
-      setShowSubmitButton(true);
+      setCurrentInput(null);
     }
   }, [connections]);
 
@@ -48,44 +62,174 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
     setFocusedNode(nodeId);
   }, []);
 
-  // Handle submit button click
-  const handleSubmit = useCallback(() => {
-    const connectionData = {
-      connections: connections.map(conn => ({
-        position: conn.position,
-        location: conn.location
-      }))
-    };
-    onSubmit(connectionData);
-  }, [connections, onSubmit]);
+  // Format phone number to E.164 format (copied from PhoneAuth.tsx)
+  const formatPhoneToE164 = (phoneNumber: string): string => {
+    // Remove all non-digit characters
+    const formattedPhone = phoneNumber.replace(/\D/g, '');
+    // Add country code if not present
+    return formattedPhone.startsWith('1') ? `+${formattedPhone}` : `+1${formattedPhone}`;
+  };
 
-  // Reset inputs
+  // Helper function for avatar background color (copied from PhoneAuth.tsx)
+  const getBackgroundColor = (colorIndex?: number): string => {
+    const colors = ['#FFD700', '#FF6347', '#4682B4', '#32CD32', '#9370DB'];
+    const index = typeof colorIndex === 'number' ? colorIndex : Math.floor(Math.random() * colors.length);
+    return colors[index % colors.length];
+  };
+
+  // Handle form submission with user creation
+  const handleSubmit = async () => {
+    console.log('Submitting connections:', connections);
+    
+    // If we have a phone number, create a user first
+    if (userData.phone) {
+      try {
+        // Format the user data according to the backend schema
+        interface UserCreateData {
+          email: string;
+          name: {
+            first: string;
+            last: string;
+          };
+          groups: string[];
+          bio: string;
+          location: string | null;
+          age: number | null;
+          profilePic: string | null;
+          color: string | null;
+          phone?: string;
+          connections?: Array<{ position: string; location: string }>;
+        }
+
+        // Format phone number to E.164 format
+        const e164Phone = formatPhoneToE164(userData.phone);
+
+        // Generate a random email based on the user's name
+        const firstName = userData?.name?.first || '';
+        const lastName = userData?.name?.last || '';
+        const fullName = `${firstName} ${lastName}`.trim();
+        const randomEmail = `${fullName.toLowerCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}@series.placeholder`;
+        
+        const userCreateData: UserCreateData = {
+          // Generate a placeholder email
+          email: randomEmail,
+          // Pass through name in the correct format
+          name: {
+            first: firstName,
+            last: lastName || 'User'
+          },
+          // Format connections as strings in the format "(position) from (location)"
+          groups: connections.map(conn => `${conn.position} from ${conn.location}`) || [],
+          // Pass through bio
+          bio: userData?.bio || '',
+          // Pass through location as a string
+          location: userData?.location || null,
+          // Pass through age, converting to number if needed
+          age: userData?.age ? Number(userData?.age) : null,
+          // Pass through profile picture if available
+          profilePic: userData?.profilePic || null,
+          // Pass through color
+          color: userData?.color || getBackgroundColor(userData?.colorIndex as number),
+          // Add phone number in E.164 format
+          phone: e164Phone
+        };
+
+        // Create the user in the backend
+        const createUserResponse = await fetch(getApiUrl('users'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userCreateData),
+        });
+
+        if (!createUserResponse.ok) {
+          const errorData = await createUserResponse.json();
+          throw new Error(errorData.detail || 'Failed to create user');
+        }
+
+        const createdUser = await createUserResponse.json();
+        const userId = createdUser.userId || e164Phone;
+        
+        // Fetch the current sender name for the deeplink
+        try {
+          const response = await fetch(getApiUrl(`users/${userId}`));
+          console.log('API response status:', response.status);
+          
+          if (response.ok) {
+            const userData = await response.json();
+            console.log('API response data:', userData);
+            console.log('Current sender name:', userData.current_sender_name);
+            
+            if (userData.current_sender_name) {
+              console.log('Passing current_sender_name to OnboardingPage:', userData.current_sender_name);
+              // Pass the userId and sender name to onSubmit
+              onSubmit({
+                ...userData,
+                connections,
+                userId,
+                current_sender_name: userData.current_sender_name,
+                phone: e164Phone
+              });
+              return;
+            } else {
+              console.log('No current_sender_name found in API response');
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        }
+        
+        // If we couldn't get the current_sender_name, just pass the userId and phone
+        onSubmit({
+          ...userData,
+          connections,
+          userId,
+          phone: e164Phone
+        });
+        
+      } catch (error) {
+        console.error('Error creating user:', error);
+        // Fall back to regular submission if user creation fails
+        onSubmit({
+          ...userData,
+          connections,
+          phone: userData.phone
+        });
+      }
+    } else {
+      // No phone number, just pass the data through
+      onSubmit({
+        ...userData,
+        connections
+      });
+    }
+  };
+
+  // Reset inputs and update panel visibility
   const resetInputs = () => {
     setPositionInput('');
     setLocationInput('');
-    setCurrentInput(null);
+    
+    // Only clear current input if we haven't reached 3 connections
+    if (connections.length < 3) {
+      setCurrentInput(null);
+    }
   };
 
   // Add a new connection
   const addConnection = useCallback(() => {
-    if (positionInput && locationInput) {
-      // Use a callback to ensure we have the latest state
-      setConnections(prevConnections => [
-        ...prevConnections, 
-        { position: positionInput, location: locationInput }
-      ]);
-      // Only update isPaneVisible when connections change
-      setIsPaneVisible(true);
+    if (positionInput.trim() && locationInput.trim() && connections.length < 3) {
+      // Add the new connection
+      setConnections([...connections, {
+        position: positionInput.trim(),
+        location: locationInput.trim()
+      }]);
+      
+      // Reset inputs
       resetInputs();
+      
+      // No need to update panel visibility as we're using the SlideUpPanel component directly
     }
-  }, [positionInput, locationInput]);
-  
-  // Update isPaneVisible when connections change
-  useEffect(() => {
-    if (connections.length > 0) {
-      setIsPaneVisible(true);
-    }
-  }, [connections.length]);
+  }, [positionInput, locationInput, connections]);
 
   // Handle key press in input fields
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -99,17 +243,21 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+    <PageContainer className="overflow-hidden p-0">
       {/* Progress bar */}
-      <div className="w-full h-2 bg-gray-200 fixed top-0 left-0 z-50">
-        <div 
-          className="h-full bg-black transition-all duration-500 ease-out"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
+      <ProgressBar progress={progress} />
       
-      {/* ForceGraph visualization - using the same container style as ForceGraphTest */}
-      <div className="h-screen w-full">
+      {/* ForceGraph visualization - contained to prevent overflow */}
+      <div 
+        className="absolute inset-0 w-full h-screen overflow-hidden" 
+        style={{ 
+          top: '2px', /* Account for progress bar */
+          height: 'calc(100vh - 2px)', /* Subtract progress bar height */
+          maxHeight: 'calc(100vh - 2px)',
+          width: '100%',
+          maxWidth: '100%'
+        }}
+      >
         <ForceGraph
           userData={{
             name: { first: userData.name?.first || 'You', last: userData.name?.last || '' },
@@ -121,112 +269,71 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
           setFocusedNode={(node) => handleNodeClick(node === null ? undefined : node)}
           onNodeClick={(node) => node && handleNodeClick(node.id)}
           onSubmit={handleSubmit}
-          isPaneVisible={isPaneVisible} /* Using stable state that doesn't change with input focus */
+          /* isPaneVisible prop removed as it's not needed in ForceGraph component */
         />
       </div>
       
-      {/* Submit button (appears when 3 connections are added) */}
-      <AnimatePresence>
-        {showSubmitButton && (
-          <motion.div 
-            className="fixed bottom-48 left-0 right-0 flex justify-center z-30"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-          >
-            <button
-              onClick={handleSubmit}
-              className="bg-black text-white py-3 px-8 rounded-full font-medium hover:bg-black/90 transition-colors shadow-lg"
-            >
-              Continue
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Submit button (appears only when exactly 3 connections are added) */}
+      {showSubmitButton && (
+        <FloatingActionButton 
+          onClick={handleSubmit}
+          visible={showSubmitButton}
+          position="center" /* Center the button in the screen */
+          text="Continue"
+          className="fixed bottom-8 sm:bottom-12 left-1/2 transform -translate-x-1/2 z-50 w-[80%] sm:w-auto max-w-[300px] font-medium text-base sm:text-lg" /* Position at bottom center with responsive width and font */
+        />
+      )}
       
-      {/* Input panel with title */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 flex justify-center">
-        <motion.div 
-          className="bg-white p-6 rounded-t-3xl shadow-lg border border-gray-100 flex flex-col"
-          animate={{ 
-            height: currentInput ? '40vh' : '20vh',
-            y: currentInput ? 0 : 0
-          }}
-          initial={{ height: '30vh', y: 0 }}
-          transition={{ 
-            type: 'spring', 
-            stiffness: 400, 
-            damping: 25,
-            height: { duration: 0.3 }
-          }}
-          style={{ width: '432px', maxWidth: '95vw' }}
+      {/* Input panel with title - completely hidden when we have 3 connections */}
+      {connections.length < 3 && (
+        <SlideUpPanel 
+          expanded={currentInput !== null}
+          minHeight={window.innerWidth <= 768 ? "30vh" : "20vh"}
+          maxHeight={window.innerWidth <= 768 ? "70vh" : "30vh"}
+          width={window.innerWidth <= 768 ? "95%" : "432px"}
         >
-          {/* Title inside input panel */}
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold">who i know</h1>
-            <p className="text-gray-600 mt-2 italic">include any ______ groups you know</p>
-          </div>
-          
-          {/* Input fields */}
-          <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
-            <div className="w-full sm:w-[calc(50%-16px)] flex items-center">
-              <input 
-                className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-black"
-                placeholder="content creators"
-                value={positionInput}
-                onChange={(e) => setPositionInput(e.target.value)}
-                onFocus={() => setCurrentInput('position')}
-                onBlur={() => setTimeout(() => {
-                  if (!document.activeElement || 
-                      (document.activeElement.tagName !== 'INPUT' && 
-                       document.activeElement.tagName !== 'BUTTON')) {
-                    setCurrentInput(null);
-                    // Don't update isPaneVisible here to prevent ForceGraph rerenders
-                  }
-                }, 100)}
-                onKeyDown={handleKeyPress}
-              />
-            </div>
-            <div className="flex-shrink-0 text-xl flex items-center justify-center font-light px-1 tracking-wider">from</div>
-            <div className="w-full sm:w-[calc(50%-16px)] flex items-center">
-              <input 
-                className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-black"
-                placeholder="New York"
-                value={locationInput}
-                onChange={(e) => setLocationInput(e.target.value)}
-                onFocus={() => setCurrentInput('location')}
-                onBlur={() => setTimeout(() => {
-                  if (!document.activeElement || 
-                      (document.activeElement.tagName !== 'INPUT' && 
-                       document.activeElement.tagName !== 'BUTTON')) {
-                    setCurrentInput(null);
-                    // Don't update isPaneVisible here to prevent ForceGraph rerenders
-                  }
-                }, 100)}
-                onKeyDown={handleKeyPress}
-              />
-              <button 
-                className={`flex-shrink-0 rounded-full w-10 h-10 flex items-center justify-center ml-1 ${
-                  positionInput || locationInput 
-                    ? 'bg-black text-white' 
-                    : 'bg-gray-300 text-gray-500'
-                }`}
-                onClick={addConnection}
-                disabled={!positionInput && !locationInput}
-              >
-                <ArrowUp size={18} />
-              </button>
-            </div>
-          </div>
+        {/* Title inside input panel */}
+        <PanelTitle 
+          title="who i know"
+          subtitle="Add 3 groups of people that you're involved with, a part of, or know a lot of people in"
+          className='mb-4'
+        />
+        
+        {/* Input fields */}
+        <InputGroup>
+          <ConnectionInput
+            positionValue={positionInput}
+            locationValue={locationInput}
+            onPositionChange={(e) => setPositionInput(e.target.value)}
+            onLocationChange={(e) => setLocationInput(e.target.value)}
+            onPositionFocus={() => setCurrentInput('position')}
+            onLocationFocus={() => setCurrentInput('location')}
+            onPositionBlur={() => setTimeout(() => {
+              if (!document.activeElement || 
+                  (document.activeElement.tagName !== 'INPUT' && 
+                   document.activeElement.tagName !== 'BUTTON')) {
+                setCurrentInput(null);
+              }
+            }, 100)}
+            onLocationBlur={() => setTimeout(() => {
+              if (!document.activeElement || 
+                  (document.activeElement.tagName !== 'INPUT' && 
+                   document.activeElement.tagName !== 'BUTTON')) {
+                setCurrentInput(null);
+              }
+            }, 100)}
+            onKeyDown={handleKeyPress}
+            onAddConnection={addConnection}
+          />
+        </InputGroup>
 
-          {/* Explanatory text */}
-          <p className="text-gray-400 italic text-sm mt-8 text-center">
-            You must add at least 3 connections so your AI friend knows who you know and can use that to make accurate group chats with people you should know within the network. The more connections, the better the matches.
-          </p>
-
-        </motion.div>
-      </div>
-    </div>
+        {/* Explanatory text */}
+        {/* <HelpText centered className='mt-4'>
+          You must add at least 3 connections so your AI friend knows who you know and can use that to make accurate group chats with people you should know within the network. The more connections, the better the matches.
+        </HelpText> */}
+      </SlideUpPanel>
+      )}
+    </PageContainer>
   );
 };
 

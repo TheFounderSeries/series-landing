@@ -1,12 +1,13 @@
 // src/pages/OnboardingPage.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useScreenSize } from '../lib/useScreenSize';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import VideoPlayer from '../components/VideoPlayer.tsx';
 import ProfilePage from '../components/ProfilePage.tsx';
 // import PhoneAuthPage from '../components/PhoneAuth.tsx';
 import ConnectionsGraph from './ConnectionsGraph.tsx';
-import WelcomePage from '../components/WelcomePage.tsx';
+import UniversityModal from '../components/UniversityModal.tsx';
 
 type OnboardingData = {
   // Profile data
@@ -32,17 +33,117 @@ type OnboardingData = {
   [key: string]: any;
 };
 
+// Component to handle iMessage redirection
+interface RedirectToIMessageProps {
+  userData: Partial<OnboardingData>;
+}
+
+const RedirectToIMessage = ({ userData }: RedirectToIMessageProps) => {
+  // State for university modal
+  const [showModal, setShowModal] = useState(true);
+  const [isUniversityStudent, setIsUniversityStudent] = useState<boolean | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  
+  // Format the bio and name for the message
+  const bio = userData.bio || 'I just joined Series!';
+  const name = userData.name ? `${userData.name.first} ${userData.name.last}`.trim() : 'User';
+  const connections = userData.connections || [];
+  const phoneNumber = userData.phone || '';
+  
+  // Create message text including the selected connections
+  const getMessageText = () => {
+    let message = `Hey, I'm ${name} and I just joined Series!\n\nMy bio is: ${bio}`;
+    
+    // Add connections information if available
+    if (connections.length > 0) {
+      message += '\n\nI know people who are:';
+      connections.forEach(connection => {
+        if (typeof connection === 'object' && connection.position) {
+          const location = connection.location ? ` from ${connection.location}` : '';
+          message += `\n- ${connection.position}${location}`;
+        }
+      });
+    }
+    
+    return encodeURIComponent(message);
+  };
+  
+  // Handle university modal responses
+  const handleYesClick = () => {
+    setIsUniversityStudent(true);
+    setShowModal(false);
+    setIsRedirecting(true);
+  };
+  
+  const handleNoClick = () => {
+    setIsUniversityStudent(false);
+    setShowModal(false);
+    setIsRedirecting(true);
+  };
+  
+  // Get the appropriate deeplink based on university status
+  const getDeeplink = () => {
+    // If user is not a university student, use the default number
+    if (isUniversityStudent === false) {
+      return `imessage://+18557141806?body=${getMessageText()}`;
+    }
+    
+    // If we have a sender name from the API, use that first for university students
+    if (userData.current_sender_name) {
+      console.log('Using current_sender_name for deeplink:', userData.current_sender_name);
+      return `imessage://${userData.current_sender_name}?body=${getMessageText()}`;
+    }
+    
+    // If we have a phone number but no sender name, use the phone number
+    if (phoneNumber) {
+      console.log('Using phone number for deeplink:', phoneNumber);
+      return `imessage://${phoneNumber}?body=${getMessageText()}`;
+    }
+    
+    // Fallback to default number
+    return `imessage://+18557141806?body=${getMessageText()}`;
+  };
+  
+  // Redirect to iMessage after university modal is closed
+  useEffect(() => {
+    if (isRedirecting) {
+      const timer = setTimeout(() => {
+        window.location.href = getDeeplink();
+      }, 1500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isRedirecting]);
+  
+  return (
+    <div>
+      {/* University Modal */}
+      <UniversityModal 
+        isOpen={showModal}
+        onYesClick={handleYesClick}
+        onNoClick={handleNoClick}
+      />
+      
+      {/* Redirect animation */}
+      {isRedirecting && (
+        <div className="animate-pulse">
+          <div className="w-14 sm:w-16 h-14 sm:h-16 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm text-gray-500">Redirecting to iMessage...</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const OnboardingPage = () => {
-  // Used for potential navigation to other routes
+  // Used for mobile detection and navigation
+  const { isMobile } = useScreenSize();
   const navigate = useNavigate();
   
-  // Function to navigate to the app route if needed
-  const goToApp = () => {
-    navigate('/app');
-  };
-  const [step, setStep] = useState<'video' | 'profile' | 'connections' | 'complete' | 'loading'>('profile');
+  const [step, setStep] = useState<'video' | 'profile' | 'video2' | 'connections' | 'complete' | 'loading'>('video');
   const [userData, setUserData] = useState<Partial<OnboardingData>>({});
-  const [userId, setUserId] = useState<string>('');
+  
+  // Remove unused function to fix lint error
 
   // Handle moving to the next step
   const goToNextStep = (newData: Partial<OnboardingData> = {}) => {
@@ -74,8 +175,12 @@ const OnboardingPage = () => {
         setStep('profile');
         break;
       case 'profile':
-        console.log('Transitioning from profile to connections (via loading)');
-        // Show loading screen first when transitioning from profile to connections
+        console.log('Transitioning from profile to video2');
+        setStep('video2');
+        break;
+      case 'video2':
+        console.log('Transitioning from video2 to connections');
+        // Show loading screen first when transitioning from video2 to connections
         setStep('loading');
         // Then after a short delay, show the connections graph page
         setTimeout(() => {
@@ -84,14 +189,15 @@ const OnboardingPage = () => {
         }, 500); // Short delay to show loading screen
         break;
       case 'connections':
-        console.log('Transitioning from connections to loading');
-        // Show loading screen first when transitioning from connections to phone
+        console.log('Transitioning from connections to complete');
+        // Show loading screen first when transitioning from connections to complete
         setStep('loading');
-        // Then after a short delay, show the phone auth page
+        // Then after a short delay, redirect to iMessage
         setTimeout(() => {
-          console.log('Loading complete, staying on loading');
-          setStep('loading');
-        }, 500); // Short delay to show loading screen
+          console.log('Loading complete, redirecting to iMessage');
+          setStep('complete');
+          // The redirection to iMessage will happen in the complete step
+        }, 1000); // Short delay to show loading screen
         break;
       case 'loading':
         console.log('Transitioning from loading to complete');
@@ -110,22 +216,28 @@ const OnboardingPage = () => {
       case 'profile':
         setStep('video');
         break;
-      case 'connections':
+      case 'video2':
         setStep('profile');
         break;
+      case 'connections':
+        setStep('video2');
+        break;
       case 'complete':
+        // If user navigates back from complete, go to connections
         setStep('connections');
         break;
       default:
+        // If all else fails, navigate to home
+        navigate('/');
         break;
     }
   };
 
   // Animation variants for page transitions
   const pageVariants = {
-    enter: { opacity: 0, x: 100 },
+    enter: { opacity: 0, x: window.innerWidth <= 768 ? 50 : 100 },
     animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -100 }
+    exit: { opacity: 0, x: window.innerWidth <= 768 ? -50 : -100 }
   };
 
   console.log('userData:', userData)
@@ -169,6 +281,22 @@ const OnboardingPage = () => {
           </motion.div>
         )}
 
+        {step === 'video2' && (
+          <motion.div
+            key="video2"
+            initial="enter"
+            animate="animate"
+            exit="exit"
+            variants={pageVariants}
+            transition={{ duration: 0.3 }}
+          >
+            <VideoPlayer 
+              onComplete={() => goToNextStep()} 
+              src={isMobile ? '/drake.mov' : '/drake_web.mov'}
+            />
+          </motion.div>
+        )}
+
         {step === 'connections' && (
           <motion.div
             key="connections"
@@ -193,12 +321,12 @@ const OnboardingPage = () => {
             exit="exit"
             variants={pageVariants}
             transition={{ duration: 0.3 }}
-            className="min-h-screen flex items-center justify-center bg-white"
+            className="min-h-screen flex items-center justify-center bg-white px-4"
           >
-            <div className="text-center">
-              <div className="w-16 h-16 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-              <h2 className="text-2xl font-semibold mb-2">Creating your profile...</h2>
-              <p className="text-gray-600">Just a moment while we set things up for you.</p>
+            <div className="w-full max-w-lg text-center">
+              <div className="w-14 sm:w-16 h-14 sm:h-16 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4 sm:mb-6"></div>
+              <h2 className="text-xl sm:text-2xl font-semibold mb-2 tracking-tight">Creating your profile...</h2>
+              <p className="text-xs sm:text-sm text-gray-600 max-w-xs mx-auto leading-relaxed">Just a moment while we set things up for you.</p>
             </div>
           </motion.div>
         )}
@@ -211,18 +339,15 @@ const OnboardingPage = () => {
             exit="exit"
             variants={pageVariants}
             transition={{ duration: 0.3 }}
+            className="min-h-screen flex items-center justify-center bg-white px-4"
           >
-            <WelcomePage 
-              userData={{
-                ...userData,
-                userId: userId,
-                bio: userData.bio || 'I just joined Series!',
-                phoneNumber: userData.phoneNumber,
-                // Format name for WelcomePage component which expects a string or undefined
-                name: userData.name ? `${userData.name.first} ${userData.name.last}`.trim() : undefined
-              }}
-              onComplete={goToApp}
-            />
+            <div className="w-full max-w-lg text-center">
+              <h2 className="text-xl sm:text-2xl font-semibold mb-4 tracking-tight">You're all set!</h2>
+              <p className="text-sm sm:text-base text-gray-600 max-w-xs mx-auto leading-relaxed mb-6">
+                Opening iMessage to share your Series profile...
+              </p>
+              <RedirectToIMessage userData={userData} />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
