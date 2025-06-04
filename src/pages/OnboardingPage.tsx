@@ -140,7 +140,7 @@ const OnboardingPage = () => {
   const { isMobile } = useScreenSize();
   const navigate = useNavigate();
   
-  const [step, setStep] = useState<'video' | 'profile' | 'video2' | 'connections' | 'complete' | 'loading'>('complete');
+  const [step, setStep] = useState<'video' | 'profile' | 'video2' | 'connections' | 'complete' | 'loading'>('video');
   const [userData, setUserData] = useState<Partial<OnboardingData>>({});
   
   // Remove unused function to fix lint error
