@@ -173,11 +173,36 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
         const createdUser = await createUserResponse.json();
         const userId = createdUser.userId || e164Phone;
         
+        // Trigger the search endpoint with the AI enhancement preference
+        try {
+          // Default to enhancing with AI unless explicitly set to false
+          const enhanceWithAI = userData?.enhanceWithAI !== undefined ? userData.enhanceWithAI : true;
+          const searchResponse = await fetch(getApiUrl(`users/${userId}/search?enhance_with_ai=${enhanceWithAI}`), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (!searchResponse.ok) {
+            console.error(`Search API error: ${searchResponse.status}`);
+          } else {
+            await searchResponse.json(); // Process response but we don't need the result
+            console.log('Search completed successfully');
+          }
+        } catch (searchErr) {
+          console.error('Error triggering search:', searchErr);
+          // Don't throw error here, continue with the flow
+        }
+        
         // Fetch the current sender name for the deeplink
         try {
           const response = await fetch(getApiUrl(`users/${userId}`));
           if (response.ok) {
             const userData = await response.json();
+
+            // GCS URLs are now permanently accessible with service account authentication
+            // No need to convert the URL
 
             if (userData.current_sender_name) {
               // Pass the userId and sender name to onSubmit

@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import OnboardingPage from './pages/OnboardingPage';
-import ForceGraphTest from './pages/ForceGraphTest';
+// import ForceGraphTest from './pages/ForceGraphTest';
 // import ProfileOnboarding from './ProfileOnboarding';
 // import QuestionnaireOnboarding from './QuestionnaireOnboarding';
 // import WelcomePage from './WelcomePage';
@@ -15,7 +15,7 @@ const App = () => {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/join" element={<OnboardingPage />} />
-        <Route path="/test-graph" element={<ForceGraphTest />} />
+        {/* <Route path="/test-graph" element={<ForceGraphTest />} /> */}
         {/* <Route path="/join/intro" element={<VideoPlayer src = "" nextRoute="/join/1" />} />
         <Route path="/join/faq" element={<ConfusedPage />} />
         <Route path="/join/1" element={<ProfileOnboarding />} />
