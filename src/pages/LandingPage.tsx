@@ -48,7 +48,7 @@ const LandingPage = () => {
     exit: { opacity: 0, y: -20, transition: { duration: 0.5 } }
   };
   // List of potential serendipitous meetings
-  const meetingOptions = ["meet your next cofounder", "hire your first developer", "pitch your future investor", "discover your dream job", "create your Friday night", "meet your AI friend"];
+  const meetingOptions = ["meet your cofounder", "hire your first developer", "pitch your future investor", "discover your dream job", "create your Friday night", "meet your AI friend"];
 
   // Render different layouts based on screen size
   return (
