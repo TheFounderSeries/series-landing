@@ -129,6 +129,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
       });
       
       const result = await response.json();
+      console.log('Upload response:', result);
       
       if (!response.ok) {
         console.error('Upload error:', {
@@ -151,8 +152,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
       // In the ProfilePage.tsx, update the success handler:
       if (result.success && result.image_url) {
         try {
-          // Use the API base URL from environment variables
-          const apiUrl = `${import.meta.env.VITE_API_BASE_URL}${result.image_url.replace('/api', '')}`;
+          // Use the authenticated URL endpoint
+          const apiUrl = getApiUrl('storage/authenticated-url') + `/series-v1-profiles/${result.image_url.split('/').pop()}`;
           console.log("Requesting to ", apiUrl);
           const signedUrlResponse = await fetch(apiUrl, {
             headers: {

@@ -127,7 +127,7 @@ const LandingPage = () => {
                 className="text-center mb-16"
                 variants={itemVariants}
               >
-                <div className={`${isMobile ? 'text-xl' : 'text-2xl'} font-medium h-8 flex justify-center`}>
+                <div className={`${isMobile ? 'text-lg' : 'text-2xl'} text-gray-600 font-medium h-8 flex justify-center`}>
                   <RollingWord words={meetingOptions} />
                 </div>
               </motion.div>
