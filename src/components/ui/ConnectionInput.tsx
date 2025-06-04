@@ -36,7 +36,7 @@ const ConnectionInput: React.FC<ConnectionInputProps> = ({
         <div className="w-full sm:w-[calc(50%-16px)]">
           <input 
             className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-black text-sm sm:text-base placeholder:text-xs sm:placeholder:text-sm placeholder:text-gray-400"
-            placeholder="e.g. Software Engineer"
+            placeholder="e.g. software engineerS"
             value={positionValue}
             onChange={onPositionChange}
             onFocus={onPositionFocus}

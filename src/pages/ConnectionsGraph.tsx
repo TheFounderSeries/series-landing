@@ -289,7 +289,7 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
         <SlideUpPanel 
           expanded={currentInput !== null}
           minHeight={window.innerWidth <= 768 ? "30vh" : "20vh"}
-          maxHeight={window.innerWidth <= 768 ? "70vh" : "30vh"}
+          maxHeight={window.innerWidth <= 768 ? "52vh" : "30vh"}
           width={window.innerWidth <= 768 ? "95%" : "432px"}
         >
         {/* Title inside input panel */}

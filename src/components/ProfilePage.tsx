@@ -449,7 +449,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
         <div
           className="bg-[#F2F2F7] mx-auto flex flex-col"
           style={{
-            width: '100%',
+            width: '90%',
             maxWidth: isMobile ? '100%' : 400,
             borderRadius: 15,
             paddingBottom: 20,
@@ -460,7 +460,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
             className="relative flex flex-col items-center"
             style={{
               width: '100%',
-              height: isMobile ? 250 : 350, // Reduced height for mobile
+              height: isMobile ? 350 : 450, // Reduced height for mobile
               background: 'rgba(210, 210, 210, 0.85)',
               borderTopLeftRadius: 15,
               borderTopRightRadius: 15,
@@ -648,13 +648,17 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                 <textarea
                   value={description}
                   onChange={e => {
-                    setDescription(e.target.value);
-                    // Clear error when user starts typing
-                    if (errors.bio) {
-                      setErrors({...errors, bio: undefined});
+                    // Limit to 120 characters
+                    if (e.target.value.length <= 100) {
+                      setDescription(e.target.value);
+                      // Clear error when user starts typing
+                      if (errors.bio) {
+                        setErrors({...errors, bio: undefined});
+                      }
                     }
                   }}
-                  placeholder="Tell us about yourself... (at least 30 characters)"
+                  maxLength={100}
+                  placeholder="Tell us about yourself... (30-100 characters)"
                   className={`${isMobile ? 'series-shadow series-placeholder' : ''} w-full p-2 mb-2 rounded-lg border resize-none placeholder:italic placeholder:text-xs sm:placeholder:text-sm`}
                   style={{
                     fontFamily: 'SF Pro, system-ui, sans-serif',
@@ -678,14 +682,17 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                   }}
                   disabled={isLoading}
                 />
+                <div className={`text-xs ${description.trim().length < 30 ? 'text-red-600' : 'text-green-600'} text-right`}>
+                  {description.length}/100 characters
+                </div>
                 {errors.bio && (
                   <p className="text-[0.5rem] text-red-600 absolute">{errors.bio}</p>
                 )}
-                {!errors.bio && description.trim().length > 0 && (
+                {/* {!errors.bio && description.trim().length > 0 && (
                   <p className={`text-[0.5rem] ${description.trim().length < 30 ? 'text-red-600' : 'text-green-600'}`}>
                     {description.trim().length}/30 characters {description.trim().length < 30 ? '(minimum 30)' : '✓'}
                   </p>
-                )}
+                )} */}
               </div>
             </div>
             

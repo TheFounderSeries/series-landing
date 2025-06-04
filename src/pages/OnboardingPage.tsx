@@ -52,18 +52,18 @@ const RedirectToIMessage = ({ userData }: RedirectToIMessageProps) => {
   
   // Create message text including the selected connections
   const getMessageText = () => {
-    let message = `Hey, I'm ${name} and I just joined Series!\n\nMy bio is: ${bio}`;
+    let message = `Hey, I'm ${name} and I just joined Series!\n\nWho are you?`;
     
-    // Add connections information if available
-    if (connections.length > 0) {
-      message += '\n\nI know people who are:';
-      connections.forEach(connection => {
-        if (typeof connection === 'object' && connection.position) {
-          const location = connection.location ? ` from ${connection.location}` : '';
-          message += `\n- ${connection.position}${location}`;
-        }
-      });
-    }
+    // // Add connections information if available
+    // if (connections.length > 0) {
+    //   message += '\n\nI know people who are:';
+    //   connections.forEach(connection => {
+    //     if (typeof connection === 'object' && connection.position) {
+    //       const location = connection.location ? ` from ${connection.location}` : '';
+    //       message += `\n- ${connection.position}${location}`;
+    //     }
+    //   });
+    // }
     
     return encodeURIComponent(message);
   };
@@ -109,7 +109,7 @@ const RedirectToIMessage = ({ userData }: RedirectToIMessageProps) => {
     if (isRedirecting) {
       const timer = setTimeout(() => {
         window.location.href = getDeeplink();
-      }, 1500);
+      }, 3000);
       
       return () => clearTimeout(timer);
     }
@@ -140,7 +140,7 @@ const OnboardingPage = () => {
   const { isMobile } = useScreenSize();
   const navigate = useNavigate();
   
-  const [step, setStep] = useState<'video' | 'profile' | 'video2' | 'connections' | 'complete' | 'loading'>('video');
+  const [step, setStep] = useState<'video' | 'profile' | 'video2' | 'connections' | 'complete' | 'loading'>('complete');
   const [userData, setUserData] = useState<Partial<OnboardingData>>({});
   
   // Remove unused function to fix lint error

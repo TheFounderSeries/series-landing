@@ -342,7 +342,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
   const nodeCanvasObject = useCallback((node: GraphNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
     const label = node.name;
     // Base font size that will be scaled with zoom
-    const baseFontSize = 1.22; // Base font size
+    const baseFontSize = window.innerWidth < 864 ? 0.87 : 1.22; // Smaller font size on mobile
     // Use both globalScale (for canvas scaling) and currentZoom (for user zoom level)
     // This ensures text scales properly with the zoom level
     const nodeRadius = node.val;
