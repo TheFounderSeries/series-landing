@@ -990,75 +990,32 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
 
         <div className="w-full flex justify-center mt-12">
           <AnimatePresence mode="wait">
-            {isLoading ? (
-              <motion.div
-                key="loading"
-                className="fixed inset-0 flex items-center justify-center bg-white z-40"
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-              >
-                <div className="flex items-center">
-                  <motion.span
-                    className="text-[10rem] font-bold leading-none inline-block relative"
-                  >
-                    S
-                  </motion.span>
-                  <motion.div
-                    className="w-20 h-4 overflow-hidden ml-4 relative -bottom-12"
-                    initial={{ scaleX: 0 }}
-                    animate={{ 
-                      scaleX: 1,
-                      transformOrigin: 'left center',
-                    }}
-                    transition={{ 
-                      duration: 3,
-                      ease: "easeInOut",
-                      repeat: Infinity, 
-                      repeatType: "loop"
-                    }}
-                  >
-                    <motion.div 
-                      className="h-full bg-black absolute top-0 left-0"
-                      initial={{ width: '0%' }}
-                      animate={{ width: '100%' }}
-                      transition={{ 
-                        duration: 3,
-                        ease: "easeInOut"
-                      }}
-                    />
-                  </motion.div>
-                </div>
-              </motion.div>
-            ) : (
-              <button
-                className="rounded-full flex items-center justify-center transition-colors"
-                style={{ 
-                  width: 120, 
-                  height: 48,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                  fontFamily: 'SF Pro, system-ui, sans-serif',
-                  cursor: isFormFilledEnough() ? 'pointer' : 'not-allowed',
-                  backgroundColor: isFormFilledEnough() ? 'black' : '#CCCCCC',
-                  color: 'white'
-                }}
-                onClick={async (e) => {
-                  e.preventDefault();
-                  if (isFormFilledEnough()) {
-                    await handleButtonClick(e);
-                  } else {
-                    validateForm(true); // Show validation errors
-                  }
-                }}
-                disabled={!isFormFilledEnough()}
-                type="button"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" stroke="white" />
-                </svg>
-              </button>
-            )}
+            <button
+              className="rounded-full flex items-center justify-center transition-colors"
+              style={{ 
+                width: 120, 
+                height: 48,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                fontFamily: 'SF Pro, system-ui, sans-serif',
+                cursor: isFormFilledEnough() ? 'pointer' : 'not-allowed',
+                backgroundColor: isFormFilledEnough() ? 'black' : '#CCCCCC',
+                color: 'white'
+              }}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (isFormFilledEnough()) {
+                  await handleButtonClick(e);
+                } else {
+                  validateForm(true); // Show validation errors
+                }
+              }}
+              disabled={!isFormFilledEnough()}
+              type="button"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" stroke="white" />
+              </svg>
+            </button>
           </AnimatePresence>
         </div> 
       </div>

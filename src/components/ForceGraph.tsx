@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { forceCollide, forceX, forceY } from 'd3-force-3d';
+import { usePostHog } from 'posthog-js/react';
 import defaultAvatar from '../assets/images/default-avatar.png';
 
 interface GraphNode {
@@ -96,10 +97,22 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
   // onSubmit is used in handleNodeClick
 }) => {
   const graphRef = useRef<any>(null);
+  const posthog = usePostHog();
   const [dimensions, setDimensions] = useState({
     width: window.innerWidth,
     height: window.innerHeight,
   });
+  
+  // Track when the graph is initialized
+  useEffect(() => {
+    posthog.capture('force_graph_initialized', {
+      connection_count: connections.length,
+      viewport_width: dimensions.width,
+      viewport_height: dimensions.height,
+      has_user_data: !!userData?.name,
+      timestamp: new Date().toISOString()
+    });
+  }, []);
 
   // Generate graph data from user data and connections
   const generateGraphData = useCallback((): GraphData => {
@@ -212,81 +225,59 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
   }, 50);
 }, [graphData, dimensions]);
 
-  // Function to auto-zoom to fit all nodes and text
-  const zoomToFit = useCallback(() => {
-    const fg = graphRef.current;
-    if (!fg || !graphData.nodes.length) return;
-    
-    // Calculate bounding box of all nodes
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    
-    graphData.nodes.forEach(node => {
-      const x = node.x || 0;
-      const y = node.y || 0;
-      // Add extra padding for node labels
-      const labelPadding = 120; // Increased padding to ensure text fits
-      
-      minX = Math.min(minX, x - labelPadding);
-      minY = Math.min(minY, y - labelPadding);
-      maxX = Math.max(maxX, x + labelPadding);
-      maxY = Math.max(maxY, y + labelPadding);
-    });
-    
-    // Add padding for better visibility
-    const padding = 50;
-    const width = Math.max(1, maxX - minX) + (padding * 2);
-    const height = Math.max(1, maxY - minY) + (padding * 2);
-    
-    // Calculate center and zoom level
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
-    
-    // Calculate required zoom level to fit all nodes
-    const zoomX = dimensions.width / width;
-    const zoomY = dimensions.height / height;
-    const zoomLevel = Math.min(zoomX, zoomY) * 0.85; // 85% of max to add some padding
-    
-    // Apply the zoom and center
-    if (fg.zoomToFit) {
-      fg.zoomToFit(400, 150); // Duration, padding
-    } else if (fg.zoom) {
-      fg.zoom(zoomLevel, 400); // Duration
-      fg.centerAt(centerX, centerY, 400); // Duration
-    }
-  }, [graphData, dimensions]);
+  // We no longer need the auto-zoom function as we're using a fixed zoom level
   
-  // Set initial zoom level and auto-zoom when graph data changes
+  // Set initial fixed zoom level instead of auto-zooming
   useEffect(() => {
     const fg = graphRef.current;
     if (!fg) return;
     
-    const handleEngineStop = () => {
-      zoomToFit();
-    };
-    
-    // Setup auto-zoom after a short delay to allow initial render
-    const zoomTimer = setTimeout(() => {
-      zoomToFit();
+    // Instead of auto-zooming, set a fixed initial zoom level
+    const initialZoomTimer = setTimeout(() => {
+      // Apply a larger fixed zoom level
+      // Use a larger zoom level for mobile to make content more visible
+      const fixedZoomLevel = window.innerWidth < 864 ? 5.0 : 6.0; // Increased zoom level for both mobile and web
       
-      // Set up auto-zoom after simulation stabilizes
+      if (fg.zoom) {
+        // Set the zoom level with a short animation duration
+        fg.zoom(fixedZoomLevel, 400);
+        
+        // Center the graph at (0,0) which should be where the user node is
+        fg.centerAt(0, 0, 400);
+      }
+      
+      // Still reheat the simulation for better layout
       if (fg.d3ReheatSimulation) {
         fg.d3ReheatSimulation();
-        fg.onEngineStop(handleEngineStop);
       }
-    }, 300); // Increased delay to ensure graph is properly initialized
+    }, 300); // Delay to ensure graph is properly initialized
     
     // Cleanup function
     return () => {
-      clearTimeout(zoomTimer);
-      if (fg.off) {
-        fg.off('engineStop', handleEngineStop);
-      }
+      clearTimeout(initialZoomTimer);
     };
-  }, [zoomToFit]);
+  }, []);  // No dependency on zoomToFit since we're not using it here
 
   // Handle node click
   const handleNodeClick = (node: GraphNode) => {
     console.log(`Node clicked: ${node.name}`);
+    
+    // Track node click event with PostHog
+    posthog.capture('graph_node_clicked', {
+      node_id: node.id,
+      node_name: node.name,
+      node_type: node.id === 'user' ? 'user' : 'connection',
+      graph_state: {
+        total_nodes: graphData.nodes.length,
+        total_connections: graphData.links.length
+      },
+      interaction_coordinates: {
+        x: node.x,
+        y: node.y
+      },
+      timestamp: new Date().toISOString()
+    });
+    
     if (onNodeClick) {
       onNodeClick(node);
     }
@@ -297,6 +288,18 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
 
   const handleNodeDragEnd = (node: GraphNode) => {
     console.log(`Node dragged: ${node.name}`);
+    
+    // Track node drag event with PostHog
+    posthog.capture('graph_node_dragged', {
+      node_id: node.id,
+      node_name: node.name,
+      node_type: node.id === 'user' ? 'user' : 'connection',
+      new_position: {
+        x: node.x,
+        y: node.y
+      },
+      timestamp: new Date().toISOString()
+    });
     
     // Update node position in the graph data
     const updatedNodes = graphData.nodes.map(n => {
@@ -338,25 +341,46 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
   // Store current zoom level for text scaling
   const [currentZoom, setCurrentZoom] = useState(1);
   
+  // Create a ref to store the avatar image to prevent flickering on rerenders
+  const avatarImageRef = useRef<HTMLImageElement | null>(null);
+
+  // Preload the avatar image when userData changes
+  useEffect(() => {
+    if (userData?.profilePic) {
+      const img = new Image();
+      img.src = userData.profilePic;
+      img.onload = () => {
+        avatarImageRef.current = img;
+        // Force a refresh of the graph when the image is loaded
+        const fg = graphRef.current;
+        if (fg && fg.refresh) {
+          fg.refresh();
+        }
+      };
+    }
+  }, [userData?.profilePic]);
+
   // Custom node rendering with avatar for user node
   const nodeCanvasObject = useCallback((node: GraphNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
     const label = node.name;
-    // Base font size that will be scaled with zoom
-    const baseFontSize = window.innerWidth < 864 ? 0.87 : 1.22; // Smaller font size on mobile
-    // Use both globalScale (for canvas scaling) and currentZoom (for user zoom level)
-    // This ensures text scales properly with the zoom level
+    // Increase base font size significantly for mobile
+    const baseFontSize = window.innerWidth < 864 ? 2.2 : 2.5; // Much larger font size, especially on mobile
     const nodeRadius = node.val;
     const x = node.x || 0;
     const y = node.y || 0;
     
     // Draw avatar for user node (drawn first to be behind the border)
     if (node.id === 'user' && node.avatar) {
-      const img = new Image();
-      img.src = node.avatar;
+      // Use the cached image from the ref to prevent flickering
+      const img = avatarImageRef.current || new Image();
+      
+      // If we don't have a cached image yet, set the source and wait for it to load
+      if (!avatarImageRef.current) {
+        img.src = node.avatar;
+      }
       
       // Only draw if image is loaded
-      if (img.complete) {
-        // We'll use nodeRadius * 2 as our target size for the circular avatar
+      if (img.complete && img.naturalWidth > 0) {
         // Create a circular clipping path for the image
         ctx.save();
         ctx.beginPath();
@@ -365,33 +389,12 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
         ctx.clip();
         
         // Draw the image to fill the entire circle
-        // Calculate dimensions to ensure the image covers the entire circle
         const targetSize = nodeRadius * 2.2; // Slightly larger than the node to ensure full coverage
-        
-        // Calculate dimensions to ensure the smallest dimension of the image covers the circle
-        const imgAspectRatio = img.width / img.height;
-        let drawWidth, drawHeight;
-        
-        if (imgAspectRatio >= 1) {
-          // Image is wider than tall or square
-          // Use height as the limiting factor and scale width accordingly
-          drawHeight = targetSize;
-          drawWidth = drawHeight * imgAspectRatio;
-        } else {
-          // Image is taller than wide
-          // Use width as the limiting factor and scale height accordingly
-          drawWidth = targetSize;
-          drawHeight = drawWidth / imgAspectRatio;
-        }
-        
-        // Center the image in the circle
-        const offsetX = x - (drawWidth / 2);
-        const offsetY = y - (drawHeight / 2);
         
         // Draw the image centered in the node circle
         ctx.drawImage(
           img,
-          offsetX, offsetY, drawWidth, drawHeight
+          x - targetSize/2, y - targetSize/2, targetSize, targetSize
         );
         
         // Add a subtle white border
@@ -403,22 +406,14 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
         
         ctx.restore();
       } else {
-        // If image isn't loaded yet, draw a placeholder
-        img.onload = () => {
-          if (graphRef.current) {
-            // Force a re-render by updating the graph data
-            if (typeof graphRef.current.graphData === 'function') {
-              const currentData = graphRef.current.graphData();
-              graphRef.current.graphData({...currentData});
-            }
-          }
-        };
-        
         // Fallback circle if image not loaded
         ctx.beginPath();
         ctx.arc(x, y, nodeRadius, 0, 2 * Math.PI);
         ctx.fillStyle = '#4299e1';
         ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5 / globalScale;
+        ctx.stroke();
       }
     } else {
       // Draw regular node for non-user nodes
@@ -490,10 +485,25 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
     // Store the current zoom level for text scaling
     setCurrentZoom(event.k);
     
+    // Track zoom events, but throttle to avoid too many events
+    // Only track significant zoom changes (more than 0.5 difference)
+    const prevZoom = currentZoom;
+    if (Math.abs(event.k - prevZoom) > 0.5) {
+      posthog.capture('graph_zoom_changed', {
+        previous_zoom: prevZoom,
+        new_zoom: event.k,
+        zoom_direction: event.k > prevZoom ? 'in' : 'out',
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // Determine minimum zoom level based on device width
+    const minZoomLevel = window.innerWidth < 864 ? 3.0 : 1.5;
+    
     // If zooming out beyond the base zoom level, reset to base zoom
-    if (event.k < 1.5) {  // Minimum zoom level
-      fg.zoom(1.5);
-      setCurrentZoom(1.5);
+    if (event.k < minZoomLevel) {  // Use the calculated minimum zoom level
+      fg.zoom(minZoomLevel);
+      setCurrentZoom(minZoomLevel);
     } else if (event.k > 10) { // Maximum zoom level
       fg.zoom(10);
       setCurrentZoom(10);
@@ -532,6 +542,15 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
           if (graphRef.current && typeof graphRef.current.d3ReheatSimulation === 'function') {
             setTimeout(() => {
               graphRef.current.d3ReheatSimulation();
+              
+              // Periodically track graph state (once per reheat)
+              posthog.capture('graph_state_update', {
+                node_count: graphData.nodes.length,
+                link_count: graphData.links.length,
+                viewport_dimensions: dimensions,
+                zoom_level: currentZoom,
+                timestamp: new Date().toISOString()
+              });
             }, 2000); // Reheat every 2 seconds
           }
         }}
