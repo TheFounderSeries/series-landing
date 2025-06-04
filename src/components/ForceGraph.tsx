@@ -525,7 +525,7 @@ const ForceGraph: React.FC<ForceGraphProps> = ({
         enableNodeDrag={true} // Allow nodes to be dragged
         enableZoomInteraction={true} // Allow zooming
         enablePanInteraction={true} // Allow panning
-        minZoom={2} // Set minimum zoom level to base zoom
+        minZoom={1.5} // Set minimum zoom level to base zoom
         onZoom={handleZoom} // Handle zoom events
         onEngineStop={() => {
           // Keep simulation running continuously

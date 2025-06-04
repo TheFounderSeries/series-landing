@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useScreenSize } from '../lib/useScreenSize';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { usePostHog } from 'posthog-js/react';
 import VideoPlayer from '../components/VideoPlayer.tsx';
 import ProfilePage from '../components/ProfilePage.tsx';
 // import PhoneAuthPage from '../components/PhoneAuth.tsx';
@@ -139,74 +140,37 @@ const OnboardingPage = () => {
   // Used for mobile detection and navigation
   const { isMobile } = useScreenSize();
   const navigate = useNavigate();
+  const posthog = usePostHog();
   
-  const [step, setStep] = useState<'video' | 'profile' | 'video2' | 'connections' | 'complete' | 'loading'>('video');
+  const [step, setStep] = useState<'video' | 'profile' | 'video2' | 'connections' | 'complete' | 'loading'>('video2');
   const [userData, setUserData] = useState<Partial<OnboardingData>>({});
   
-  // Remove unused function to fix lint error
-
-  // Handle moving to the next step
-  const goToNextStep = (newData: Partial<OnboardingData> = {}) => {
-    console.log('goToNextStep called with data:', newData);
-    console.log('Current step:', step);
-    
-    // If we're coming from the profile page, format the name properly
-    if (step === 'profile' && typeof newData.name === 'string') {
-      // Convert string name to object format
-      const nameParts = (newData.name as string).split(' ');
-      const formattedData = {
-        ...newData,
-        name: {
-          first: nameParts[0] || '',
-          last: nameParts.slice(1).join(' ') || ''
-        }
-      };
-      console.log('Formatted data for profile step:', formattedData);
-      setUserData(prev => ({ ...prev, ...formattedData }));
-    } else {
-      console.log('Setting user data directly:', newData);
-      setUserData(prev => ({ ...prev, ...newData }));
+  // Function to navigate to the next step
+  const goToNextStep = (data?: any) => {
+    // Update user data if provided
+    if (data) {
+      setUserData({ ...userData, ...data });
     }
     
-    console.log('Processing step transition for:', step);
-    switch (step) {
-      case 'video':
-        console.log('Transitioning from video to profile');
-        setStep('profile');
-        break;
-      case 'profile':
-        console.log('Transitioning from profile to video2');
-        setStep('video2');
-        break;
-      case 'video2':
-        console.log('Transitioning from video2 to connections');
-        // Show loading screen first when transitioning from video2 to connections
-        setStep('loading');
-        // Then after a short delay, show the connections graph page
-        setTimeout(() => {
-          console.log('Loading complete, showing connections');
-          setStep('connections');
-        }, 500); // Short delay to show loading screen
-        break;
-      case 'connections':
-        console.log('Transitioning from connections to complete');
-        // Show loading screen first when transitioning from connections to complete
-        setStep('loading');
-        // Then after a short delay, redirect to iMessage
-        setTimeout(() => {
-          console.log('Loading complete, redirecting to iMessage');
-          setStep('complete');
-          // The redirection to iMessage will happen in the complete step
-        }, 1000); // Short delay to show loading screen
-        break;
-      case 'loading':
-        console.log('Transitioning from loading to complete');
-        // After loading is complete, move to welcome page
-        setStep('complete');
-        break;
-      default:
-        console.log('Unknown step:', step);
-        break;
+    // Track step completion
+    posthog.capture('onboarding_step_completed', {
+      current_step: step,
+      has_data: !!data
+    });
+    
+    // Determine next step based on current step
+    if (step === 'video') {
+      setStep('profile');
+      posthog.capture('onboarding_step_started', { step: 'profile' });
+    } else if (step === 'profile') {
+      setStep('video2');
+      posthog.capture('onboarding_step_started', { step: 'video2' });
+    } else if (step === 'video2') {
+      setStep('connections');
+      posthog.capture('onboarding_step_started', { step: 'connections' });
+    } else if (step === 'connections') {
+      setStep('complete');
+      posthog.capture('onboarding_step_started', { step: 'complete' });
     }
   };
 

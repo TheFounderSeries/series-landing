@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenSize } from '../lib/useScreenSize';
 import { getApiUrl } from '../utils/api';
+import { usePostHog } from 'posthog-js/react';
 import defaultAvatar from '../assets/images/default-avatar.png';
 import { Info } from 'lucide-react';
 
@@ -30,6 +31,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   const { isMobile } = useScreenSize();
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const posthog = usePostHog();
   
   // Form state with dummy defaults
   
@@ -90,6 +92,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     
+    // Track profile picture upload attempt
+    posthog.capture('profile_picture_upload_attempt');
     // Clear any existing profile picture error when a new file is selected
     if (errors.profilePic) {
       setErrors({...errors, profilePic: undefined});
@@ -151,6 +155,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
       // Update the profile picture with the authenticated URL
       // In the ProfilePage.tsx, update the success handler:
       if (result.success && result.image_url) {
+        // Track successful upload
+        posthog.capture('profile_picture_upload_success');
         try {
           // Use the authenticated URL endpoint
           const apiUrl = getApiUrl('storage/authenticated-url') + `/series-v1-profiles/${result.image_url.split('/').pop()}`;
@@ -197,8 +203,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     } catch (error) {
       console.error('Error uploading image:', error);
       showError(error instanceof Error ? error.message : 'Failed to upload image. Please try again.');
-      // Revert to default image on error
       setProfilePic(initialProfilePic);
+      
+      // Track upload failure
+      posthog.capture('profile_picture_upload_error', {
+        error_message: error instanceof Error ? error.message : 'Unknown error'
+      });
     } finally {
       setIsUploading(false);
       // Reset file input
@@ -357,9 +367,17 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   const handleSubmit = async () => {
     console.log('Form submission attempted');
     
+    // Track form submission attempt
+    posthog.capture('profile_form_submission_attempt');
+    
     // Validate the form with error display
     if (!validateForm(true)) {
       console.log('Form validation failed');
+      
+      // Track validation failure
+      posthog.capture('profile_form_validation_failed', {
+        errors: errors
+      });
       return;
     }
     
@@ -416,6 +434,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
 
     console.log('Submitting profile data:', profileData);
 
+    // Track successful profile submission
+    posthog.capture('profile_completed', {
+      has_profile_pic: profilePic !== initialProfilePic,
+      bio_length: description.length,
+      location_provided: !!userLocation,
+      age_provided: !!userAge
+    });
+    
     // Call the onSubmit prop function to move to the connections page
     if (onSubmit) {
       console.log('Calling onSubmit function');
