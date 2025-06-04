@@ -91,13 +91,11 @@ const RedirectToIMessage = ({ userData }: RedirectToIMessageProps) => {
     
     // If we have a sender name from the API, use that first for university students
     if (userData.current_sender_name) {
-      console.log('Using current_sender_name for deeplink:', userData.current_sender_name);
       return `imessage://${userData.current_sender_name}?body=${getMessageText()}`;
     }
     
     // If we have a phone number but no sender name, use the phone number
     if (phoneNumber) {
-      console.log('Using phone number for deeplink:', phoneNumber);
       return `imessage://${phoneNumber}?body=${getMessageText()}`;
     }
     
@@ -203,8 +201,6 @@ const OnboardingPage = () => {
     animate: { opacity: 1, x: 0 },
     exit: { opacity: 0, x: window.innerWidth <= 768 ? -50 : -100 }
   };
-
-  console.log('userData:', userData)
 
   return (
     <div className="min-h-screen bg-white">

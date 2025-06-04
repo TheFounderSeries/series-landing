@@ -133,7 +133,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
       });
       
       const result = await response.json();
-      console.log('Upload response:', result);
       
       if (!response.ok) {
         console.error('Upload error:', {
@@ -160,21 +159,17 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
         try {
           // Use the authenticated URL endpoint
           const apiUrl = getApiUrl('storage/authenticated-url') + `/series-v1-profiles/${result.image_url.split('/').pop()}`;
-          console.log("Requesting to ", apiUrl);
           const signedUrlResponse = await fetch(apiUrl, {
             headers: {
               'Accept': 'application/json'
             }
           });
           
-          console.log('Response status:', signedUrlResponse.status);
           const responseText = await signedUrlResponse.text();
-          console.log('Response text:', responseText);
           
           let responseData;
           try {
             responseData = JSON.parse(responseText);
-            console.log('Parsed response:', responseData);
           } catch (e) {
             console.error('Failed to parse response as JSON:', e);
             throw new Error('Invalid response from server');
@@ -188,7 +183,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
           //   throw new Error('No signed_url in response');
           // }
           
-          console.log('Setting profile pic with URL:', responseData.authenticatedUrl);
           setProfilePic(responseData.authenticatedUrl);
           
           if (errors.profilePic) {
@@ -326,15 +320,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     }
     
     // Log validation state for debugging
-    console.log('Field validation states:', {
-      isFirstNameValid,
-      isLastNameValid,
-      isPhoneValid,
-      isLocationValid,
-      isProfilePicValid,
-      isBioValid,
-      formValid: !hasErrors
-    });
+    // console.log('Field validation states:', {
+    //   isFirstNameValid,
+    //   isLastNameValid,
+    //   isPhoneValid,
+    //   isLocationValid,
+    //   isProfilePicValid,
+    //   isBioValid,
+    //   formValid: !hasErrors
+    // });
     
     // Only set errors if showErrors is true
     if (showErrors) {
@@ -365,14 +359,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
 
   // Form submission with validation
   const handleSubmit = async () => {
-    console.log('Form submission attempted');
     
     // Track form submission attempt
     posthog.capture('profile_form_submission_attempt');
     
     // Validate the form with error display
     if (!validateForm(true)) {
-      console.log('Form validation failed');
       
       // Track validation failure
       posthog.capture('profile_form_validation_failed', {
@@ -432,8 +424,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
       color: getBackgroundColor(color) // Pass the actual color value as well
     };
 
-    console.log('Submitting profile data:', profileData);
-
     // Track successful profile submission
     posthog.capture('profile_completed', {
       has_profile_pic: profilePic !== initialProfilePic,
@@ -456,16 +446,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     
     // Call the onSubmit prop function to move to the connections page
     if (onSubmit) {
-      console.log('Calling onSubmit function');
       onSubmit(profileData);
-    } else {
-      console.log('onSubmit function is not available');
     }
   };
 
   const handleButtonClick = async (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent default button behavior
-    console.log('Button clicked');
     await handleSubmit();
   };
 
@@ -1059,7 +1045,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                 }}
                 onClick={async (e) => {
                   e.preventDefault();
-                  console.log('Next button clicked');
                   if (isFormFilledEnough()) {
                     await handleButtonClick(e);
                   } else {

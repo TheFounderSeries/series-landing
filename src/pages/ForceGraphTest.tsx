@@ -17,21 +17,11 @@ const ForceGraphTest: React.FC = () => {
     profilePic: defaultAvatar
   };
 
-  const handleNodeClick = (node: any) => {
-    console.log('Node clicked:', node);
-  };
-
-  const handleSubmit = (data: any) => {
-    console.log('Form submitted with data:', data);
-  };
-
   return (
     <div className="h-screen w-full">
       <ForceGraph 
         userData={userData}
         connections={connections}
-        onNodeClick={handleNodeClick}
-        onSubmit={handleSubmit}
       />
     </div>
   );

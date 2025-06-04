@@ -89,8 +89,6 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
 
   // Handle form submission with user creation
   const handleSubmit = async () => {
-    console.log('Submitting connections:', connections);
-    
     // Track connections submission event
     posthog.capture('connections_submitted', {
       connection_count: connections.length,
@@ -178,15 +176,10 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
         // Fetch the current sender name for the deeplink
         try {
           const response = await fetch(getApiUrl(`users/${userId}`));
-          console.log('API response status:', response.status);
-          
           if (response.ok) {
             const userData = await response.json();
-            console.log('API response data:', userData);
-            console.log('Current sender name:', userData.current_sender_name);
-            
+
             if (userData.current_sender_name) {
-              console.log('Passing current_sender_name to OnboardingPage:', userData.current_sender_name);
               // Pass the userId and sender name to onSubmit
               onSubmit({
                 ...userData,
@@ -196,8 +189,6 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
                 phone: e164Phone
               });
               return;
-            } else {
-              console.log('No current_sender_name found in API response');
             }
           }
         } catch (error) {

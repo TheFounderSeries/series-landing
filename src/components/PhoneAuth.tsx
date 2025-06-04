@@ -232,7 +232,6 @@ const PhoneAuth: React.FC<PhoneAuthProps> = ({ onSubmit, userData }) => {
             // Trigger the search endpoint with the AI enhancement preference from userData
             try {
               const enhanceWithAI = userData?.enhanceWithAI !== undefined ? userData.enhanceWithAI : true;
-              console.log('Triggering search with AI enhancement:', enhanceWithAI);
               const searchResponse = await fetch(`https://series-api-202642739529.us-central1.run.app/api/users/${userId}/search?enhance_with_ai=${enhanceWithAI}`, {
                 method: 'POST',
                 headers: {
@@ -244,7 +243,6 @@ const PhoneAuth: React.FC<PhoneAuthProps> = ({ onSubmit, userData }) => {
                 console.error(`Search API error: ${searchResponse.status}`);
               } else {
                 const searchResult = await searchResponse.json();
-                console.log('Search result:', searchResult);
               }
             } catch (searchErr) {
               console.error('Error triggering search:', searchErr);
@@ -286,9 +284,6 @@ const PhoneAuth: React.FC<PhoneAuthProps> = ({ onSubmit, userData }) => {
       
       // Format phone number to E.164 format
       const e164Phone = formatPhoneToE164(phoneNumber);
-      
-      // Log the phone number for debugging
-      console.log('Resending verification code to:', e164Phone);
       
       // Send verification code to the user's phone
       const result = await sendVerificationCode(e164Phone);
