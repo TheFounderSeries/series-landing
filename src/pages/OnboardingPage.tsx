@@ -142,7 +142,7 @@ const OnboardingPage = () => {
   const navigate = useNavigate();
   const posthog = usePostHog();
   
-  const [step, setStep] = useState<'video' | 'profile' | 'video2' | 'connections' | 'complete' | 'loading'>('video2');
+  const [step, setStep] = useState<'video' | 'profile' | 'video2' | 'connections' | 'complete' | 'loading'>('video');
   const [userData, setUserData] = useState<Partial<OnboardingData>>({});
   
   // Function to navigate to the next step
