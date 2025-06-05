@@ -1,22 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScreenSize } from '../lib/useScreenSize';
+import Button from './ui/Button';
 
 interface VideoPlayerProps {
   onComplete: () => void;
   autoPlay?: boolean;
   src?: string;
+  showSkipButton?: boolean;
 }
 
 const VideoPlayer = ({ 
   onComplete, 
   autoPlay = true,
-  src: customSrc
+  src: customSrc,
+  showSkipButton = true
 }: VideoPlayerProps) => {
   const { isMobile } = useScreenSize();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [showSkip, setShowSkip] = useState(false);
   
   // Use the provided src or fall back to default based on screen size
   const videoSrc = customSrc || (isMobile ? '/loading_screen_mobile.mov' : '/loading_screen.mov');
@@ -29,6 +33,11 @@ const VideoPlayer = ({
     const handleEnded = () => {
       onComplete();
     };
+    
+    // Show skip button after 3 seconds
+    const skipTimer = setTimeout(() => {
+      setShowSkip(true);
+    }, 3000);
 
     const handleError = () => {
       console.error('Video playback error');
@@ -63,6 +72,7 @@ const VideoPlayer = ({
     // Clean up
     return () => {
       if (fallbackTimer.current) clearTimeout(fallbackTimer.current);
+      clearTimeout(skipTimer);
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('ended', handleEnded);
       video.removeEventListener('error', handleError);
@@ -104,6 +114,27 @@ const VideoPlayer = ({
         disablePictureInPicture
         disableRemotePlayback
       />
+      
+      <AnimatePresence>
+        {showSkipButton && showSkip && (
+          <motion.div 
+            className="absolute bottom-6 right-6 z-20"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={onComplete}
+              className="shadow-md"
+            >
+              Skip
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
