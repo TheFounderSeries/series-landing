@@ -108,7 +108,7 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
       });
     }
     
-    // If we have a phone number, create a user first
+    // If we have a phone number, check if user exists first, then create if needed
     if (userData.phone) {
       try {
         // Format the user data according to the backend schema
@@ -130,51 +130,81 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
 
         // Format phone number to E.164 format
         const e164Phone = formatPhoneToE164(userData.phone);
-
-        // Generate a random email based on the user's name
-        const firstName = userData?.name?.first || '';
-        const lastName = userData?.name?.last || '';
-        const fullName = `${firstName} ${lastName}`.trim();
-        const randomEmail = `${fullName.toLowerCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}@series.placeholder`;
         
-        const userCreateData: UserCreateData = {
-          // Generate a placeholder email
-          email: randomEmail,
-          // Pass through name in the correct format
-          name: {
-            first: firstName,
-            last: lastName || 'User'
-          },
-          // Format connections as strings in the format "(position) from (location)"
-          groups: connections.map(conn => `${conn.position} from ${conn.location}`) || [],
-          // Pass through bio
-          bio: userData?.bio || '',
-          // Pass through location as a string
-          location: userData?.location || null,
-          // Pass through age, converting to number if needed
-          age: userData?.age ? Number(userData?.age) : null,
-          // Pass through profile picture if available
-          profilePic: userData?.profilePic || null,
-          // Pass through color
-          color: userData?.color || getBackgroundColor(userData?.colorIndex as number),
-          // Add phone number in E.164 format
-          phone: e164Phone
-        };
-
-        // Create the user in the backend
-        const createUserResponse = await fetch(getApiUrl('users'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(userCreateData),
-        });
-
-        if (!createUserResponse.ok) {
-          const errorData = await createUserResponse.json();
-          throw new Error(errorData.detail || 'Failed to create user');
+        // First check if user already exists by phone number
+        let userId = e164Phone;
+        let existingUser = null;
+        
+        try {
+          const checkUserResponse = await fetch(getApiUrl(`users/phone/${e164Phone}`));
+          if (checkUserResponse.ok) {
+            existingUser = await checkUserResponse.json();
+            userId = existingUser.userId || e164Phone;
+            console.log('User already exists:', existingUser);
+            
+            // If user exists and has current_sender_name, pass it along with other user data
+            if (existingUser.current_sender_name) {
+              onSubmit({
+                ...userData,
+                ...existingUser,  // Include all existing user data
+                connections,
+                userId,
+                phone: e164Phone
+              });
+              return; // Exit early since we've handled the submission
+            }
+          }
+        } catch (error) {
+          console.log('User not found, will create new user');
         }
+        
+        // If user doesn't exist, create a new one
+        if (!existingUser) {
+          // Generate a random email based on the user's name
+          const firstName = userData?.name?.first || '';
+          const lastName = userData?.name?.last || '';
+          const fullName = `${firstName} ${lastName}`.trim();
+          const randomEmail = `${fullName.toLowerCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}@series.placeholder`;
+          
+          const userCreateData: UserCreateData = {
+            // Generate a placeholder email
+            email: randomEmail,
+            // Pass through name in the correct format
+            name: {
+              first: firstName,
+              last: lastName || 'User'
+            },
+            // Format connections as strings in the format "(position) from (location)"
+            groups: connections.map(conn => `${conn.position} from ${conn.location}`) || [],
+            // Pass through bio
+            bio: userData?.bio || '',
+            // Pass through location as a string
+            location: userData?.location || null,
+            // Pass through age, converting to number if needed
+            age: userData?.age ? Number(userData?.age) : null,
+            // Pass through profile picture if available
+            profilePic: userData?.profilePic || null,
+            // Pass through color
+            color: userData?.color || getBackgroundColor(userData?.colorIndex as number),
+            // Add phone number in E.164 format
+            phone: e164Phone
+          };
 
-        const createdUser = await createUserResponse.json();
-        const userId = createdUser.userId || e164Phone;
+          // Create the user in the backend
+          const createUserResponse = await fetch(getApiUrl('users'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userCreateData),
+          });
+
+          if (!createUserResponse.ok) {
+            const errorData = await createUserResponse.json();
+            throw new Error(errorData.detail || 'Failed to create user');
+          }
+
+          const createdUser = await createUserResponse.json();
+          userId = createdUser.userId || e164Phone;
+        }
         
         // Trigger the search endpoint with the AI enhancement preference
         try {
