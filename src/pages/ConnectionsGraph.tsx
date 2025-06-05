@@ -42,6 +42,7 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
   const [showSubmitButton, setShowSubmitButton] = useState(false);
   const [focusedNode, setFocusedNode] = useState<string | undefined>(undefined);
   const [showModal, setShowModal] = useState(false); // Track if modal should be shown
+  const [isLoading, setIsLoading] = useState(false); // Track loading state for the Continue button
 
   // Memoized connections to prevent unnecessary rerenders
   const memoizedConnections = useMemo(() => connections, [connections.length]);
@@ -89,6 +90,8 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
 
   // Handle form submission with user creation
   const handleSubmit = async () => {
+    // Set loading state to prevent multiple clicks
+    setIsLoading(true);
     // Track connections submission event
     posthog.capture('connections_submitted', {
       connection_count: connections.length,
@@ -337,9 +340,10 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
         <div className="fixed bottom-8 sm:bottom-12 left-1/2 transform -translate-x-1/2 z-30 w-[80%] sm:w-auto max-w-[300px] pointer-events-auto">
           <button
             onClick={handleSubmit}
-            className="w-full bg-black text-white py-3 px-8 rounded-full font-medium hover:bg-black/90 transition-all shadow-lg text-base sm:text-lg animate-pulse hover:animate-none active:scale-95 duration-150"
+            disabled={isLoading}
+            className={`w-full bg-black text-white py-3 px-8 rounded-full font-medium transition-all shadow-lg text-base sm:text-lg ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-black/90 animate-pulse hover:animate-none active:scale-95'} duration-150`}
           >
-            Continue
+            {isLoading ? 'Loading...' : 'Continue'}
           </button>
         </div>
       )}
