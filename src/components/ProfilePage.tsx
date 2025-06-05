@@ -682,7 +682,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                     }
                   }}
                   maxLength={100}
-                  placeholder="Tell us about yourself... (30-100 characters)"
+                  placeholder="Who are you? (30-100 characters)"
                   className={`${isMobile ? 'series-shadow series-placeholder' : ''} w-full p-2 mb-2 rounded-lg border resize-none placeholder:italic placeholder:text-xs sm:placeholder:text-sm`}
                   style={{
                     fontFamily: 'SF Pro, system-ui, sans-serif',
@@ -707,7 +707,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                   disabled={isLoading}
                 />
                 <div className={`text-xs ${description.trim().length < 30 ? 'text-red-600' : 'text-green-600'} text-right`}>
-                  {description.length}/100 characters
+                  {description.length}/30 characters
                 </div>
                 {errors.bio && (
                   <p className="text-[0.5rem] text-red-600 absolute">{errors.bio}</p>
