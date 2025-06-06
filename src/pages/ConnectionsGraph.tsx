@@ -389,7 +389,7 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
         {/* Title inside input panel */}
         <PanelTitle 
           title="who i know"
-          subtitle="Add 3 groups of people that you're involved with, a part of, or know a lot of people in"
+          subtitle="Add 3 groups of people that you're involved with, a part of, or know a lot of people in; one at a time!"
           className='mb-4'
         />
         
