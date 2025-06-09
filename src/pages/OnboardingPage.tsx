@@ -1,7 +1,7 @@
 // src/pages/OnboardingPage.tsx
 import { useState, useEffect } from 'react';
 import { useScreenSize } from '../lib/useScreenSize';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePostHog } from 'posthog-js/react';
 import VideoPlayer from '../components/VideoPlayer.tsx';
@@ -45,10 +45,8 @@ const RedirectToIMessage = ({ userData }: RedirectToIMessageProps) => {
   const [isUniversityStudent, setIsUniversityStudent] = useState<boolean | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
   
-  // Format the bio and name for the message
-  const bio = userData.bio || 'I just joined Series!';
+  // Format the name for the message
   const name = userData.name ? `${userData.name.first} ${userData.name.last}`.trim() : 'User';
-  const connections = userData.connections || [];
   const phoneNumber = userData.phone || '';
   
   // Create message text including the selected connections
@@ -138,10 +136,33 @@ const OnboardingPage = () => {
   // Used for mobile detection and navigation
   const { isMobile } = useScreenSize();
   const navigate = useNavigate();
+  const location = useLocation();
   const posthog = usePostHog();
   
   const [step, setStep] = useState<'video' | 'profile' | 'video2' | 'connections' | 'complete' | 'loading'>('video');
   const [userData, setUserData] = useState<Partial<OnboardingData>>({});
+  
+  // Extract referrerId from location state if available and store in user data for MongoDB metadata
+  useEffect(() => {
+    if (location.state && 'referrerId' in location.state) {
+      const { referrerId } = location.state as { referrerId: string };
+      if (referrerId) {
+        // Store referrerId in user data to be included in MongoDB metadata
+        setUserData(prevData => ({
+          ...prevData,
+          metadata: {
+            ...(prevData.metadata || {}),
+            referredBy: referrerId
+          }
+        }));
+        
+        // Track that referral ID was passed to onboarding
+        posthog.capture('referral_passed_to_onboarding', {
+          referrer_id: referrerId
+        });
+      }
+    }
+  }, [location.state, posthog]);
   
   // Function to navigate to the next step
   const goToNextStep = (data?: any) => {

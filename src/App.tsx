@@ -134,6 +134,8 @@ const App = () => {
       <Routes>
         <Route path="/" element={<TrackedLandingPage />} />
         <Route path="/join" element={<TrackedOnboardingPage />} />
+        {/* Redirect from /eunice to /?ref=eunice */}
+        <Route path="/eunice" element={<Navigate to="/?ref=eunice" replace />} />
         {/* <Route path="/test-graph" element={<ForceGraphTest />} /> */}
         {/* <Route path="/join/intro" element={<VideoPlayer src = "" nextRoute="/join/1" />} />
         <Route path="/join/faq" element={<ConfusedPage />} />

@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
 import RollingWord from '../components/RollingWord';
 import { useScreenSize } from '../lib/useScreenSize';
@@ -10,8 +10,25 @@ const LandingPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { isMobile } = useScreenSize();
   const navigate = useNavigate();
+  const location = useLocation();
   const posthog = usePostHog();
   
+  // Extract referral ID from URL query parameters
+  const [referrerId, setReferrerId] = useState<string | null>(null);
+  
+  // Extract referral ID from URL query parameters
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const refParam = queryParams.get('ref');
+    if (refParam) {
+      setReferrerId(refParam);
+      // Track referral in PostHog
+      posthog.capture('referral_detected', {
+        referrer_id: refParam
+      });
+    }
+  }, [location.search, posthog]);
+
   // Track landing page view with additional metadata
   useEffect(() => {
     posthog.capture('landing_page_viewed', {
@@ -20,7 +37,8 @@ const LandingPage = () => {
       screen_width: window.innerWidth,
       screen_height: window.innerHeight,
       referrer: document.referrer || 'direct',
-      user_agent: navigator.userAgent
+      user_agent: navigator.userAgent,
+      referrer_id: referrerId
     });
     
     // Track scroll depth
@@ -91,7 +109,8 @@ const LandingPage = () => {
         time_on_loading_screen: 3000 // milliseconds
       });
       
-      navigate('/join');
+      // Pass referrerId as a state object when navigating
+      navigate('/join', { state: { referrerId } });
       setIsLoading(false);
     }, 3000);
     

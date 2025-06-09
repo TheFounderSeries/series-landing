@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import defaultAvatar from '../assets/images/default-avatar.png';
 import ForceGraph from '../components/ForceGraph';
-import { getApiUrl } from '../utils/api';
+import { getApiUrl, api } from '../utils/api';
 import { usePostHog } from 'posthog-js/react';
 import {
   PageContainer,
@@ -126,6 +126,10 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
           color: string | null;
           phone?: string;
           connections?: Array<{ position: string; location: string }>;
+          metadata?: {
+            referredBy?: string;
+            [key: string]: any;
+          };
         }
 
         // Format phone number to E.164 format
@@ -187,23 +191,20 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
             // Pass through color
             color: userData?.color || getBackgroundColor(userData?.colorIndex as number),
             // Add phone number in E.164 format
-            phone: e164Phone
+            phone: e164Phone,
+            // Include metadata with referral information if available
+            metadata: userData.metadata
           };
 
-          // Create the user in the backend
-          const createUserResponse = await fetch(getApiUrl('users'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(userCreateData),
-          });
-
-          if (!createUserResponse.ok) {
-            const errorData = await createUserResponse.json();
-            throw new Error(errorData.detail || 'Failed to create user');
+          // Create the user in the backend using the api utility for proper JSON serialization
+          try {
+            const createdUser = await api.post('users', userCreateData);
+            console.log('User created:', createdUser);
+            userId = createdUser.userId || e164Phone;
+          } catch (error) {
+            console.error('Error creating user:', error);
+            throw new Error('Failed to create user: ' + (error instanceof Error ? error.message : String(error)));
           }
-
-          const createdUser = await createUserResponse.json();
-          userId = createdUser.userId || e164Phone;
         }
         
         // Trigger the search endpoint with the AI enhancement preference
