@@ -23,7 +23,7 @@ const VideoPlayer = ({
   const [showSkip, setShowSkip] = useState(false);
   
   // Use the provided src or fall back to default based on screen size
-  const videoSrc = customSrc || (isMobile ? '/loading_screen_mobile.mov' : '/loading_screen.mov');
+  const videoSrc = customSrc || (isMobile ? '/loading_screen_mobile.mp4' : '/loading_screen.mp4');
   const fallbackTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
