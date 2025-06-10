@@ -3,6 +3,8 @@ import { useEffect } from 'react';
 import { usePostHog } from 'posthog-js/react';
 import LandingPage from './pages/LandingPage';
 import OnboardingPage from './pages/OnboardingPage';
+import EuniceLandingPage from './pages/EuniceLandingPage';
+import EuniceOnboardingPage from './pages/EuniceOnboardingPage';
 // import ForceGraphTest from './pages/ForceGraphTest';
 // import ProfileOnboarding from './ProfileOnboarding';
 // import QuestionnaireOnboarding from './QuestionnaireOnboarding';
@@ -126,6 +128,8 @@ const withTracking = <P extends object>(Component: React.ComponentType<P>, pageN
 // Wrap pages with tracking
 const TrackedLandingPage = withTracking(LandingPage, 'landing_page');
 const TrackedOnboardingPage = withTracking(OnboardingPage, 'onboarding_page');
+const TrackedEuniceLandingPage = withTracking(EuniceLandingPage, 'eunice_landing_page');
+const TrackedEuniceOnboardingPage = withTracking(EuniceOnboardingPage, 'eunice_onboarding_page');
 
 const App = () => {
   return (
@@ -135,7 +139,8 @@ const App = () => {
         <Route path="/" element={<TrackedLandingPage />} />
         <Route path="/join" element={<TrackedOnboardingPage />} />
         {/* Redirect from /eunice to /?ref=eunice */}
-        <Route path="/eunice" element={<Navigate to="/?ref=eunice" replace />} />
+        <Route path="/eunice" element={<TrackedEuniceLandingPage />} />
+        <Route path="/eunice/join" element={<TrackedEuniceOnboardingPage />} />
         {/* <Route path="/test-graph" element={<ForceGraphTest />} /> */}
         {/* <Route path="/join/intro" element={<VideoPlayer src = "" nextRoute="/join/1" />} />
         <Route path="/join/faq" element={<ConfusedPage />} />
