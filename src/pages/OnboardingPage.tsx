@@ -9,6 +9,7 @@ import ProfilePage from '../components/ProfilePage.tsx';
 // import PhoneAuthPage from '../components/PhoneAuth.tsx';
 import ConnectionsGraph from './ConnectionsGraph.tsx';
 import UniversityModal from '../components/UniversityModal.tsx';
+import { getApiUrl } from '../utils/api';
 
 type OnboardingData = {
   // Profile data
@@ -78,6 +79,28 @@ const RedirectToIMessage = ({ userData }: RedirectToIMessageProps) => {
     setIsUniversityStudent(false);
     setShowModal(false);
     setIsRedirecting(true);
+    
+    // Update user metadata to add waitlist property if userId exists
+    if (userData.userId) {
+      // Use getApiUrl to construct the API endpoint URL
+      fetch(getApiUrl(`users/${userData.userId}`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          waitlist: true
+        })
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => console.log('User added to waitlist.'))
+        .catch(error => console.error('Error updating user metadata.'));
+    }
   };
   
   // Get the appropriate deeplink based on university status
@@ -94,7 +117,7 @@ const RedirectToIMessage = ({ userData }: RedirectToIMessageProps) => {
     
     // If we have a phone number but no sender name, use the phone number
     if (phoneNumber) {
-      return `imessage://${phoneNumber}?body=${getMessageText()}`;
+      return `imessage://+18557141806?body=${getMessageText()}`;
     }
     
     // Fallback to default number
@@ -222,6 +245,7 @@ const OnboardingPage = () => {
     animate: { opacity: 1, x: 0 },
     exit: { opacity: 0, x: window.innerWidth <= 768 ? -50 : -100 }
   };
+  console.log(userData);
 
   return (
     <div className="min-h-screen bg-white">
@@ -328,6 +352,9 @@ const OnboardingPage = () => {
                 Opening iMessage to share your Series profile...
               </p>
               <RedirectToIMessage userData={userData} />
+              <p className="text-sm font-bold text-gray-500 mt-6">
+                If the link doesn't work, text {userData.current_sender_name || '+18557141806'} directly.
+              </p>
             </div>
           </motion.div>
         )}

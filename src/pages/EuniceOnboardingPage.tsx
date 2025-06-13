@@ -1,14 +1,15 @@
-// src/pages/OnboardingPage.tsx
+// src/pages/EuniceOnboardingPage.tsx
 import { useState, useEffect } from 'react';
-import { useScreenSize } from '../lib/useScreenSize.tsx';
+import { useScreenSize } from '../lib/useScreenSize';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePostHog } from 'posthog-js/react';
 import VideoPlayer from '../components/VideoPlayer.tsx';
 import ProfilePage from '../components/ProfilePage.tsx';
 // import PhoneAuthPage from '../components/PhoneAuth.tsx';
-import ConnectionsGraph from './ConnectionsGraph.tsx';
+import EuniceConnectionsGraph from './EuniceConnectionsGraph.tsx';
 import UniversityModal from '../components/UniversityModal.tsx';
+import { getApiUrl } from '../utils/api';
 
 type OnboardingData = {
   // Profile data
@@ -78,6 +79,28 @@ const RedirectToIMessage = ({ userData }: RedirectToIMessageProps) => {
     setIsUniversityStudent(false);
     setShowModal(false);
     setIsRedirecting(true);
+    
+    // Update user metadata to add waitlist property if userId exists
+    if (userData.userId) {
+      // Use getApiUrl to construct the API endpoint URL
+      fetch(getApiUrl(`users/${userData.userId}`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          waitlist: true
+        })
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => console.log('User added to waitlist.'))
+        .catch(error => console.error('Error updating user metadata.'));
+    }
   };
   
   // Get the appropriate deeplink based on university status
@@ -222,6 +245,7 @@ const OnboardingPage = () => {
     animate: { opacity: 1, x: 0 },
     exit: { opacity: 0, x: window.innerWidth <= 768 ? -50 : -100 }
   };
+  console.log(userData);
 
   return (
     <div className="min-h-screen bg-white">
@@ -287,7 +311,7 @@ const OnboardingPage = () => {
             variants={pageVariants}
             transition={{ duration: 0.3 }}
           >
-            <ConnectionsGraph 
+            <EuniceConnectionsGraph 
               userData={userData}
               onSubmit={(data) => goToNextStep(data)}
             />
@@ -328,6 +352,9 @@ const OnboardingPage = () => {
                 Opening iMessage to share your Series profile...
               </p>
               <RedirectToIMessage userData={userData} />
+              <p className="text-sm font-bold text-gray-500 mt-6">
+                If the link doesn't work, text {userData.current_sender_name || '+18557141806'} directly.
+              </p>
             </div>
           </motion.div>
         )}

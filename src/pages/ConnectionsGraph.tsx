@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import defaultAvatar from '../assets/images/default-avatar.png';
 import ForceGraph from '../components/ForceGraph';
-import { getApiUrl, api } from '../utils/api';
+import { getApiUrl } from '../utils/api';
 import { usePostHog } from 'posthog-js/react';
 import {
   PageContainer,
@@ -170,6 +170,17 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
           const fullName = `${firstName} ${lastName}`.trim();
           const randomEmail = `${fullName.toLowerCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}@series.placeholder`;
           
+          // Log userData to see what we're working with
+          console.log('User data before formatting for creation:', {
+            userData,
+            firstName,
+            lastName,
+            profilePic: userData?.profilePic,
+            phone: userData?.phone,
+            e164Phone,
+            metadata: userData?.metadata
+          });
+          
           const userCreateData: UserCreateData = {
             // Generate a placeholder email
             email: randomEmail,
@@ -195,14 +206,57 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
             // Include metadata with referral information if available
             metadata: userData.metadata
           };
+          
+          // Log the formatted data being sent to the backend
+          console.log('User create data being sent to backend:', JSON.stringify(userCreateData, null, 2));
 
-          // Create the user in the backend using the api utility for proper JSON serialization
+          // Create the user in the backend using fetch directly for more detailed error logging
           try {
-            const createdUser = await api.post('users', userCreateData);
-            console.log('User created:', createdUser);
+            console.log('Sending user creation request to:', getApiUrl('users'));
+            
+            const response = await fetch(getApiUrl('users'), {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(userCreateData)
+            });
+            
+            // Log the raw response status
+            console.log('User creation response status:', response.status, response.statusText);
+            
+            // If response is not ok, get the error details
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error('Error response from server:', {
+                status: response.status,
+                statusText: response.statusText,
+                errorBody: errorText
+              });
+              
+              try {
+                // Try to parse the error as JSON if possible
+                const errorJson = JSON.parse(errorText);
+                console.error('Parsed error details:', errorJson);
+                
+                // Log specific validation errors if available
+                if (errorJson.detail && Array.isArray(errorJson.detail)) {
+                  console.error('Validation errors:', errorJson.detail);
+                }
+              } catch (parseError) {
+                // If it's not JSON, just log the raw text
+                console.error('Raw error response:', errorText);
+              }
+              
+              throw new Error(`Server returned ${response.status}: ${errorText}`);
+            }
+            
+            // Parse the successful response
+            const createdUser = await response.json();
+            console.log('User created successfully:', createdUser);
             userId = createdUser.userId || e164Phone;
           } catch (error) {
-            console.error('Error creating user:', error);
+            console.error('Error in user creation process:', error);
             throw new Error('Failed to create user: ' + (error instanceof Error ? error.message : String(error)));
           }
         }
@@ -211,21 +265,46 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
         try {
           // Default to enhancing with AI unless explicitly set to false
           const enhanceWithAI = userData?.enhanceWithAI !== undefined ? userData.enhanceWithAI : true;
-          const searchResponse = await fetch(getApiUrl(`users/${userId}/search?enhance_with_ai=${enhanceWithAI}`), {
+          const searchUrl = getApiUrl(`users/${userId}/search?enhance_with_ai=${enhanceWithAI}`);
+          
+          console.log('Triggering search endpoint:', {
+            url: searchUrl,
+            userId,
+            enhanceWithAI
+          });
+          
+          const searchResponse = await fetch(searchUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
           });
           
+          // Log the search response status
+          console.log('Search response status:', searchResponse.status, searchResponse.statusText);
+          
           if (!searchResponse.ok) {
-            console.error(`Search API error: ${searchResponse.status}`);
+            const errorText = await searchResponse.text();
+            console.error('Search API error:', {
+              status: searchResponse.status,
+              statusText: searchResponse.statusText,
+              errorBody: errorText
+            });
+            
+            try {
+              // Try to parse the error as JSON
+              const errorJson = JSON.parse(errorText);
+              console.error('Search error details:', errorJson);
+            } catch (parseError) {
+              // If not JSON, log the raw text
+              console.error('Raw search error response:', errorText);
+            }
           } else {
-            await searchResponse.json(); // Process response but we don't need the result
-            console.log('Search completed successfully');
+            const searchResult = await searchResponse.json();
+            console.log('Search completed successfully:', searchResult);
           }
         } catch (searchErr) {
-          console.error('Error triggering search:', searchErr);
+          console.error('Exception when triggering search:', searchErr);
           // Don't throw error here, continue with the flow
         }
         
