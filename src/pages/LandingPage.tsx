@@ -1,21 +1,116 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
 import RollingWord from '../components/RollingWord';
 import { useScreenSize } from '../lib/useScreenSize';
+import { usePostHog } from 'posthog-js/react';
 
 const LandingPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { isMobile } = useScreenSize();
   const navigate = useNavigate();
+  const location = useLocation();
+  const posthog = usePostHog();
+  
+  // Extract referral ID from URL query parameters
+  const [referrerId, setReferrerId] = useState<string | null>(null);
+  
+  // Extract referral ID from URL query parameters
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const refParam = queryParams.get('ref');
+    if (refParam) {
+      setReferrerId(refParam);
+      // Track referral in PostHog
+      posthog.capture('referral_detected', {
+        referrer_id: refParam
+      });
+    }
+  }, [location.search, posthog]);
+
+  // Track landing page view with additional metadata
+  useEffect(() => {
+    posthog.capture('landing_page_viewed', {
+      timestamp: new Date().toISOString(),
+      is_mobile: isMobile,
+      screen_width: window.innerWidth,
+      screen_height: window.innerHeight,
+      referrer: document.referrer || 'direct',
+      user_agent: navigator.userAgent,
+      referrer_id: referrerId
+    });
+    
+    // Track scroll depth
+    let maxScrollDepth = 0;
+    const trackScrollDepth = () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const windowHeight = window.innerHeight;
+      const docHeight = Math.max(
+        document.body.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.clientHeight,
+        document.documentElement.scrollHeight,
+        document.documentElement.offsetHeight
+      );
+      
+      const scrollPercent = Math.round((scrollTop / (docHeight - windowHeight)) * 100);
+      
+      if (scrollPercent > maxScrollDepth) {
+        maxScrollDepth = scrollPercent;
+        
+        // Track at 25%, 50%, 75%, and 100% scroll depth
+        if (maxScrollDepth === 25 || maxScrollDepth === 50 || maxScrollDepth === 75 || maxScrollDepth === 100) {
+          posthog.capture('scroll_depth_milestone', {
+            depth_percentage: maxScrollDepth,
+            page: 'landing_page'
+          });
+        }
+      }
+    };
+    
+    window.addEventListener('scroll', trackScrollDepth);
+    
+    return () => {
+      window.removeEventListener('scroll', trackScrollDepth);
+      
+      // Track max scroll depth on page leave
+      posthog.capture('final_scroll_depth', {
+        depth_percentage: maxScrollDepth,
+        page: 'landing_page'
+      });
+    };
+  }, [posthog, isMobile]);
   
   const handleButtonClick = () => {
+    // Track the CTA button click with metadata
+    posthog.capture('join_button_clicked', {
+      timestamp: new Date().toISOString(),
+      is_mobile: isMobile,
+      location: 'landing_page',
+      button_text: 'Join us'
+    });
+    
     setIsLoading(true);
+    
+    // Track loading state
+    posthog.capture('loading_screen_started', {
+      from_page: 'landing_page',
+      to_page: 'onboarding_page'
+    });
     
     // After 3 seconds, navigate to the video player instead of directly to profile onboarding
     const timer = setTimeout(() => {
-      navigate('/join');
+      // Track navigation event
+      posthog.capture('navigation_event', {
+        from_page: 'landing_page',
+        to_page: 'onboarding_page',
+        navigation_type: 'automatic_redirect',
+        time_on_loading_screen: 3000 // milliseconds
+      });
+      
+      // Pass referrerId as a state object when navigating
+      navigate('/join', { state: { referrerId } });
       setIsLoading(false);
     }, 3000);
     
@@ -147,6 +242,13 @@ const LandingPage = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleButtonClick}
+                data-tracking="join_button"
+                onMouseEnter={() => {
+                  posthog.capture('button_hover', {
+                    button_name: 'join_button',
+                    page: 'landing_page'
+                  });
+                }}
               >
                 <span className="mr-3 text-xl font-medium">Join us</span> <ArrowRight className="w-5 h-5" />
               </motion.button>
@@ -167,25 +269,114 @@ const LandingPage = () => {
                   <span className="text-center text-gray-200 text-lg font-medium">
                     AS SEEN ON:
                   </span>
-                  <a href="https://www.forbes.com/sites/davidprosser/2025/04/04/how-two-yale-juniors-just-raised-31-million-for-their-social-network/" target="_blank" rel="noopener noreferrer" className="transition-all hover:brightness-100">
+                  <a 
+                    href="https://www.forbes.com/sites/davidprosser/2025/04/04/how-two-yale-juniors-just-raised-31-million-for-their-social-network/" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="transition-all hover:brightness-100"
+                    onClick={() => {
+                      posthog.capture('external_link_clicked', {
+                        link_text: 'Forbes',
+                        link_url: 'https://www.forbes.com/sites/davidprosser/2025/04/04/how-two-yale-juniors-just-raised-31-million-for-their-social-network/',
+                        link_position: 'footer',
+                        link_type: 'press_coverage'
+                      });
+                    }}
+                    data-tracking="forbes_link">
                     <img src="/images/9 3.png" alt="Backer 1" className="h-12 w-auto opacity-50 hover:opacity-100 transition-opacity" />
                   </a>
-                  <a href="https://www.nbcnews.com/video/-series-co-founders-talk-about-what-it-took-to-get-the-social-network-off-the-ground-240629317572" className="transition-all hover:brightness-100">
+                  <a 
+                    href="https://www.nbcnews.com/video/-series-co-founders-talk-about-what-it-took-to-get-the-social-network-off-the-ground-240629317572" 
+                    className="transition-all hover:brightness-100"
+                    onClick={() => {
+                      posthog.capture('external_link_clicked', {
+                        link_text: 'NBC News',
+                        link_url: 'https://www.nbcnews.com/video/-series-co-founders-talk-about-what-it-took-to-get-the-social-network-off-the-ground-240629317572',
+                        link_position: 'footer',
+                        link_type: 'press_coverage'
+                      });
+                    }}
+                    data-tracking="nbc_link">
                     <img src="/images/10 4.png" alt="Backer 2" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
                   </a>
-                  <a href="https://www.entrepreneur.com/starting-a-business/yale-students-raised-3m-in-14-days-for-anti-facebook/489578" target="_blank" rel="noopener noreferrer" className="transition-all hover:brightness-100">
+                  <a 
+                    href="https://www.entrepreneur.com/starting-a-business/yale-students-raised-3m-in-14-days-for-anti-facebook/489578" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="transition-all hover:brightness-100"
+                    onClick={() => {
+                      posthog.capture('external_link_clicked', {
+                        link_text: 'Entrepreneur',
+                        link_url: 'https://www.entrepreneur.com/starting-a-business/yale-students-raised-3m-in-14-days-for-anti-facebook/489578',
+                        link_position: 'footer',
+                        link_type: 'press_coverage'
+                      });
+                    }}
+                    data-tracking="entrepreneur_link">
                     <img src="/images/9 1.png" alt="Backer 3" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
                   </a>
-                  <a href="https://www.instagram.com/complex/p/DIQBHDpOWzm/?api=stake%E3%80%90GB77.CC%E3%80%91.aviu&hl=af&img_index=2" target="_blank" rel="noopener noreferrer" className="transition-all hover:brightness-100">
+                  <a 
+                    href="https://www.instagram.com/complex/p/DIQBHDpOWzm/?api=stake%E3%80%90GB77.CC%E3%80%91.aviu&hl=af&img_index=2" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="transition-all hover:brightness-100"
+                    onClick={() => {
+                      posthog.capture('external_link_clicked', {
+                        link_text: 'Complex',
+                        link_url: 'https://www.instagram.com/complex/p/DIQBHDpOWzm/?api=stake%E3%80%90GB77.CC%E3%80%91.aviu&hl=af&img_index=2',
+                        link_position: 'footer',
+                        link_type: 'press_coverage'
+                      });
+                    }}
+                    data-tracking="complex_link">
                     <img src="/images/10 1.png" alt="Backer 4" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
                   </a>
-                  <a href="https://www.businessinsider.com/pitch-deck-series-gen-z-professional-network-ai-texting-2025-4" target="_blank" rel="noopener noreferrer" className="transition-all hover:brightness-100">
+                  <a 
+                    href="https://www.businessinsider.com/pitch-deck-series-gen-z-professional-network-ai-texting-2025-4" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="transition-all hover:brightness-100"
+                    onClick={() => {
+                      posthog.capture('external_link_clicked', {
+                        link_text: 'Business Insider',
+                        link_url: 'https://www.businessinsider.com/pitch-deck-series-gen-z-professional-network-ai-texting-2025-4',
+                        link_position: 'footer',
+                        link_type: 'press_coverage'
+                      });
+                    }}
+                    data-tracking="business_insider_link">
                     <img src="/images/9 2.png" alt="Backer 5" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
                   </a>
-                  <a href="https://www.fox61.com/video/news/local/morning-show/yale-students-launch-series-social-network/520-07415f62-0362-460a-b229-9a8bb6f1f3f6" target="_blank" rel="noopener noreferrer" className="transition-all hover:brightness-100">
+                  <a 
+                    href="https://www.fox61.com/video/news/local/morning-show/yale-students-launch-series-social-network/520-07415f62-0362-460a-b229-9a8bb6f1f3f6" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="transition-all hover:brightness-100"
+                    onClick={() => {
+                      posthog.capture('external_link_clicked', {
+                        link_text: 'Fox 61',
+                        link_url: 'https://www.fox61.com/video/news/local/morning-show/yale-students-launch-series-social-network/520-07415f62-0362-460a-b229-9a8bb6f1f3f6',
+                        link_position: 'footer',
+                        link_type: 'press_coverage'
+                      });
+                    }}
+                    data-tracking="fox_link">
                     <img src="/images/11 1.png" alt="Backer 6" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
                   </a>
-                  <a href="https://finance.yahoo.com/news/yale-nathaneo-johnson-sean-hargrow-182342002.html" target="_blank" rel="noopener noreferrer" className="transition-all hover:brightness-100">
+                  <a 
+                    href="https://finance.yahoo.com/news/yale-nathaneo-johnson-sean-hargrow-182342002.html" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="transition-all hover:brightness-100"
+                    onClick={() => {
+                      posthog.capture('external_link_clicked', {
+                        link_text: 'Yahoo Finance',
+                        link_url: 'https://finance.yahoo.com/news/yale-nathaneo-johnson-sean-hargrow-182342002.html',
+                        link_position: 'footer',
+                        link_type: 'press_coverage'
+                      });
+                    }}
+                    data-tracking="yahoo_link">
                     <img src="/images/image 2372.png" alt="Backer 7" className="h-12 w-auto opacity-70 hover:opacity-100 transition-opacity" />
                   </a>
                 </div>

@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { useScreenSize } from '../lib/useScreenSize';
 import { getApiUrl } from '../utils/api';
 import { usePostHog } from 'posthog-js/react';
 import defaultAvatar from '../assets/images/default-avatar.png';
 import { Info } from 'lucide-react';
+import { getAbsoluteImageUrl } from '../utils/imageUtils';
 
 // Constants
 const initialProfilePic = defaultAvatar;
@@ -46,6 +47,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   const [connections, setConnections] = useState(initialData.connections || ['', '', '']);
   const [enhanceWithAI, setEnhanceWithAI] = useState(initialData.enhanceWithAI !== false);
   const [profilePic, setProfilePic] = useState(initialData.profilePic || initialProfilePic);
+  // We use profilePic for both display and backend storage
   const [color] = useState(Math.floor(Math.random() * 5));
   const [isUploading, setIsUploading] = useState(false);
   
@@ -88,8 +90,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   }>({});
 
   // Handle photo upload with Google Cloud Storage
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    console.log('Photo upload initiated');
+    if (!event.target.files || event.target.files.length === 0) {
+      console.log('No files selected');
+      return;
+    }
+    console.log('File selected:', event.target.files[0].name);
+    const file = event.target.files[0];
     if (!file) return;
     
     // Track profile picture upload attempt
@@ -123,7 +131,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
       
       // Add metadata for Google Cloud Storage
       formData.append('storage_type', 'gcs'); // Indicate we want to use Google Cloud Storage
-      formData.append('access_level', 'authenticated'); // Only allow authenticated access
+      formData.append('access_level', 'public'); // Use public access since we're getting direct URLs
       
       // Upload the image to our backend which will handle GCS upload
       // Using our API utility to get the base URL from environment variables
@@ -151,39 +159,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
         throw new Error(errorMessage);
       }
       
-      // Update the profile picture with the authenticated URL
-      // In the ProfilePage.tsx, update the success handler:
+      // Update the profile picture with the direct URL
       if (result.success && result.image_url) {
         // Track successful upload
         posthog.capture('profile_picture_upload_success');
         try {
-          // Use the authenticated URL endpoint
-          const apiUrl = getApiUrl('storage/authenticated-url') + `/series-v1-profiles/${result.image_url.split('/').pop()}`;
-          const signedUrlResponse = await fetch(apiUrl, {
-            headers: {
-              'Accept': 'application/json'
-            }
-          });
+          // Convert the URL to a proxied URL if it's a GCS URL for display
+          const processedUrl = getAbsoluteImageUrl(result.image_url);
           
-          const responseText = await signedUrlResponse.text();
-          
-          let responseData;
-          try {
-            responseData = JSON.parse(responseText);
-          } catch (e) {
-            console.error('Failed to parse response as JSON:', e);
-            throw new Error('Invalid response from server');
-          }
-          
-          if (!signedUrlResponse.ok) {
-            throw new Error(responseData.detail || 'Failed to get signed URL');
-          }
-          
-          // if (!responseData.signed_url) {
-          //   throw new Error('No signed_url in response');
-          // }
-          
-          setProfilePic(responseData.authenticatedUrl);
+          // Use the processed URL for UI display
+          setProfilePic(processedUrl);
           
           if (errors.profilePic) {
             setErrors({ ...errors, profilePic: undefined });
@@ -193,6 +178,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
           showError(error instanceof Error ? error.message : 'Failed to update profile picture');
           setProfilePic(initialProfilePic);
         }
+      } else {
+        console.error('Upload response missing success or image_url:', result);
       }
     } catch (error) {
       console.error('Error uploading image:', error);
@@ -273,50 +260,42 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   const validateForm = (showErrors = true) => {
     // Validation
     let newErrors: any = {};
-    let hasErrors = false;
     
     // Check each field individually
     const isFirstNameValid = firstName.trim() !== '';
     if (!isFirstNameValid) {
       newErrors.firstName = 'First name is required';
-      hasErrors = true;
     }
     
     const isLastNameValid = lastName.trim() !== '';
     if (!isLastNameValid) {
       newErrors.lastName = 'Last name is required';
-      hasErrors = true;
     }
     
     // Phone validation
     const isPhoneValid = validatePhoneNumber();
     if (!isPhoneValid) {
       newErrors.phone = 'Please enter a valid 10-digit phone number';
-      hasErrors = true;
     }
     
     // Location validation
     const isLocationValid = userLocation.trim() !== '';
     if (!isLocationValid) {
       newErrors.location = 'Location is required';
-      hasErrors = true;
     }
     
     // Profile picture validation
     const isProfilePicValid = profilePic !== initialProfilePic;
     if (!isProfilePicValid) {
       newErrors.profilePic = 'Profile picture is required';
-      hasErrors = true;
     }
 
     // Bio validation
     const isBioValid = description.trim().length >= 30;
     if (!description.trim()) {
       newErrors.bio = 'Please tell us about yourself';
-      hasErrors = true;
     } else if (!isBioValid) {
       newErrors.bio = 'Please write at least 30 characters about yourself';
-      hasErrors = true;
     }
     
     // Log validation state for debugging
@@ -327,7 +306,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     //   isLocationValid,
     //   isProfilePicValid,
     //   isBioValid,
-    //   formValid: !hasErrors
+    //   formValid: Object.keys(newErrors).length === 0
     // });
     
     // Only set errors if showErrors is true
@@ -682,7 +661,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                     }
                   }}
                   maxLength={100}
-                  placeholder="Tell us about yourself... (30-100 characters)"
+                  placeholder="Who are you? (30-100 characters)"
                   className={`${isMobile ? 'series-shadow series-placeholder' : ''} w-full p-2 mb-2 rounded-lg border resize-none placeholder:italic placeholder:text-xs sm:placeholder:text-sm`}
                   style={{
                     fontFamily: 'SF Pro, system-ui, sans-serif',
@@ -707,7 +686,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                   disabled={isLoading}
                 />
                 <div className={`text-xs ${description.trim().length < 30 ? 'text-red-600' : 'text-green-600'} text-right`}>
-                  {description.length}/100 characters
+                  {description.length}/30 characters
                 </div>
                 {errors.bio && (
                   <p className="text-[0.5rem] text-red-600 absolute">{errors.bio}</p>
@@ -733,7 +712,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                 */}
               {/* Connection inputs with X buttons */}
               {/* {connections.map((connection, index) => {
-                const hasError = errors.connections && errors.connections[index];
+                // We track individual errors in the errors object, but don't need a global hasErrors flag
                 
                 return (
                   <div key={index} className="relative w-full flex items-center mb-2">
@@ -990,75 +969,32 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
 
         <div className="w-full flex justify-center mt-12">
           <AnimatePresence mode="wait">
-            {isLoading ? (
-              <motion.div
-                key="loading"
-                className="fixed inset-0 flex items-center justify-center bg-white z-40"
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-              >
-                <div className="flex items-center">
-                  <motion.span
-                    className="text-[10rem] font-bold leading-none inline-block relative"
-                  >
-                    S
-                  </motion.span>
-                  <motion.div
-                    className="w-20 h-4 overflow-hidden ml-4 relative -bottom-12"
-                    initial={{ scaleX: 0 }}
-                    animate={{ 
-                      scaleX: 1,
-                      transformOrigin: 'left center',
-                    }}
-                    transition={{ 
-                      duration: 3,
-                      ease: "easeInOut",
-                      repeat: Infinity, 
-                      repeatType: "loop"
-                    }}
-                  >
-                    <motion.div 
-                      className="h-full bg-black absolute top-0 left-0"
-                      initial={{ width: '0%' }}
-                      animate={{ width: '100%' }}
-                      transition={{ 
-                        duration: 3,
-                        ease: "easeInOut"
-                      }}
-                    />
-                  </motion.div>
-                </div>
-              </motion.div>
-            ) : (
-              <button
-                className="rounded-full flex items-center justify-center transition-colors"
-                style={{ 
-                  width: 120, 
-                  height: 48,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                  fontFamily: 'SF Pro, system-ui, sans-serif',
-                  cursor: isFormFilledEnough() ? 'pointer' : 'not-allowed',
-                  backgroundColor: isFormFilledEnough() ? 'black' : '#CCCCCC',
-                  color: 'white'
-                }}
-                onClick={async (e) => {
-                  e.preventDefault();
-                  if (isFormFilledEnough()) {
-                    await handleButtonClick(e);
-                  } else {
-                    validateForm(true); // Show validation errors
-                  }
-                }}
-                disabled={!isFormFilledEnough()}
-                type="button"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" stroke="white" />
-                </svg>
-              </button>
-            )}
+            <button
+              className="rounded-full flex items-center justify-center transition-colors"
+              style={{ 
+                width: 120, 
+                height: 48,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                fontFamily: 'SF Pro, system-ui, sans-serif',
+                cursor: isFormFilledEnough() ? 'pointer' : 'not-allowed',
+                backgroundColor: isFormFilledEnough() ? 'black' : '#CCCCCC',
+                color: 'white'
+              }}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (isFormFilledEnough()) {
+                  await handleButtonClick(e);
+                } else {
+                  validateForm(true); // Show validation errors
+                }
+              }}
+              disabled={!isFormFilledEnough()}
+              type="button"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" stroke="white" />
+              </svg>
+            </button>
           </AnimatePresence>
         </div> 
       </div>

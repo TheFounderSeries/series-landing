@@ -42,6 +42,7 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
   const [showSubmitButton, setShowSubmitButton] = useState(false);
   const [focusedNode, setFocusedNode] = useState<string | undefined>(undefined);
   const [showModal, setShowModal] = useState(false); // Track if modal should be shown
+  const [isLoading, setIsLoading] = useState(false); // Track loading state for the Continue button
 
   // Memoized connections to prevent unnecessary rerenders
   const memoizedConnections = useMemo(() => connections, [connections.length]);
@@ -89,6 +90,8 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
 
   // Handle form submission with user creation
   const handleSubmit = async () => {
+    // Set loading state to prevent multiple clicks
+    setIsLoading(true);
     // Track connections submission event
     posthog.capture('connections_submitted', {
       connection_count: connections.length,
@@ -105,7 +108,7 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
       });
     }
     
-    // If we have a phone number, create a user first
+    // If we have a phone number, check if user exists first, then create if needed
     if (userData.phone) {
       try {
         // Format the user data according to the backend schema
@@ -123,75 +126,185 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
           color: string | null;
           phone?: string;
           connections?: Array<{ position: string; location: string }>;
+          metadata?: {
+            referredBy?: string;
+            [key: string]: any;
+          };
         }
 
         // Format phone number to E.164 format
         const e164Phone = formatPhoneToE164(userData.phone);
-
-        // Generate a random email based on the user's name
-        const firstName = userData?.name?.first || '';
-        const lastName = userData?.name?.last || '';
-        const fullName = `${firstName} ${lastName}`.trim();
-        const randomEmail = `${fullName.toLowerCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}@series.placeholder`;
         
-        const userCreateData: UserCreateData = {
-          // Generate a placeholder email
-          email: randomEmail,
-          // Pass through name in the correct format
-          name: {
-            first: firstName,
-            last: lastName || 'User'
-          },
-          // Format connections as strings in the format "(position) from (location)"
-          groups: connections.map(conn => `${conn.position} from ${conn.location}`) || [],
-          // Pass through bio
-          bio: userData?.bio || '',
-          // Pass through location as a string
-          location: userData?.location || null,
-          // Pass through age, converting to number if needed
-          age: userData?.age ? Number(userData?.age) : null,
-          // Pass through profile picture if available
-          profilePic: userData?.profilePic || null,
-          // Pass through color
-          color: userData?.color || getBackgroundColor(userData?.colorIndex as number),
-          // Add phone number in E.164 format
-          phone: e164Phone
-        };
-
-        // Create the user in the backend
-        const createUserResponse = await fetch(getApiUrl('users'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(userCreateData),
-        });
-
-        if (!createUserResponse.ok) {
-          const errorData = await createUserResponse.json();
-          throw new Error(errorData.detail || 'Failed to create user');
+        // First check if user already exists by phone number
+        let userId = e164Phone;
+        let existingUser = null;
+        
+        try {
+          const checkUserResponse = await fetch(getApiUrl(`users/phone/${e164Phone}`));
+          if (checkUserResponse.ok) {
+            existingUser = await checkUserResponse.json();
+            userId = existingUser.userId || e164Phone;
+            console.log('User already exists:', existingUser);
+            
+            // If user exists and has current_sender_name, pass it along with other user data
+            if (existingUser.current_sender_name) {
+              onSubmit({
+                ...userData,
+                ...existingUser,  // Include all existing user data
+                connections,
+                userId,
+                phone: e164Phone
+              });
+              return; // Exit early since we've handled the submission
+            }
+          }
+        } catch (error) {
+          console.log('User not found, will create new user');
         }
+        
+        // If user doesn't exist, create a new one
+        if (!existingUser) {
+          // Generate a random email based on the user's name
+          const firstName = userData?.name?.first || '';
+          const lastName = userData?.name?.last || '';
+          const fullName = `${firstName} ${lastName}`.trim();
+          const randomEmail = `${fullName.toLowerCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}@series.placeholder`;
+          
+          // Log userData to see what we're working with
+          console.log('User data before formatting for creation:', {
+            userData,
+            firstName,
+            lastName,
+            profilePic: userData?.profilePic,
+            phone: userData?.phone,
+            e164Phone,
+            metadata: userData?.metadata
+          });
+          
+          const userCreateData: UserCreateData = {
+            // Generate a placeholder email
+            email: randomEmail,
+            // Pass through name in the correct format
+            name: {
+              first: firstName,
+              last: lastName || 'User'
+            },
+            // Format connections as strings in the format "(position) from (location)"
+            groups: connections.map(conn => `${conn.position} from ${conn.location}`) || [],
+            // Pass through bio
+            bio: userData?.bio || '',
+            // Pass through location as a string
+            location: userData?.location || null,
+            // Pass through age, converting to number if needed
+            age: userData?.age ? Number(userData?.age) : null,
+            // Pass through profile picture if available
+            profilePic: userData?.profilePic || null,
+            // Pass through color
+            color: userData?.color || getBackgroundColor(userData?.colorIndex as number),
+            // Add phone number in E.164 format
+            phone: e164Phone,
+            // Include metadata with referral information if available
+            metadata: userData.metadata
+          };
+          
+          // Log the formatted data being sent to the backend
+          console.log('User create data being sent to backend:', JSON.stringify(userCreateData, null, 2));
 
-        const createdUser = await createUserResponse.json();
-        const userId = createdUser.userId || e164Phone;
+          // Create the user in the backend using fetch directly for more detailed error logging
+          try {
+            console.log('Sending user creation request to:', getApiUrl('users'));
+            
+            const response = await fetch(getApiUrl('users'), {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(userCreateData)
+            });
+            
+            // Log the raw response status
+            console.log('User creation response status:', response.status, response.statusText);
+            
+            // If response is not ok, get the error details
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error('Error response from server:', {
+                status: response.status,
+                statusText: response.statusText,
+                errorBody: errorText
+              });
+              
+              try {
+                // Try to parse the error as JSON if possible
+                const errorJson = JSON.parse(errorText);
+                console.error('Parsed error details:', errorJson);
+                
+                // Log specific validation errors if available
+                if (errorJson.detail && Array.isArray(errorJson.detail)) {
+                  console.error('Validation errors:', errorJson.detail);
+                }
+              } catch (parseError) {
+                // If it's not JSON, just log the raw text
+                console.error('Raw error response:', errorText);
+              }
+              
+              throw new Error(`Server returned ${response.status}: ${errorText}`);
+            }
+            
+            // Parse the successful response
+            const createdUser = await response.json();
+            console.log('User created successfully:', createdUser);
+            userId = createdUser.userId || e164Phone;
+          } catch (error) {
+            console.error('Error in user creation process:', error);
+            throw new Error('Failed to create user: ' + (error instanceof Error ? error.message : String(error)));
+          }
+        }
         
         // Trigger the search endpoint with the AI enhancement preference
         try {
           // Default to enhancing with AI unless explicitly set to false
           const enhanceWithAI = userData?.enhanceWithAI !== undefined ? userData.enhanceWithAI : true;
-          const searchResponse = await fetch(getApiUrl(`users/${userId}/search?enhance_with_ai=${enhanceWithAI}`), {
+          const searchUrl = getApiUrl(`users/${userId}/search?enhance_with_ai=${enhanceWithAI}`);
+          
+          console.log('Triggering search endpoint:', {
+            url: searchUrl,
+            userId,
+            enhanceWithAI
+          });
+          
+          const searchResponse = await fetch(searchUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
           });
           
+          // Log the search response status
+          console.log('Search response status:', searchResponse.status, searchResponse.statusText);
+          
           if (!searchResponse.ok) {
-            console.error(`Search API error: ${searchResponse.status}`);
+            const errorText = await searchResponse.text();
+            console.error('Search API error:', {
+              status: searchResponse.status,
+              statusText: searchResponse.statusText,
+              errorBody: errorText
+            });
+            
+            try {
+              // Try to parse the error as JSON
+              const errorJson = JSON.parse(errorText);
+              console.error('Search error details:', errorJson);
+            } catch (parseError) {
+              // If not JSON, log the raw text
+              console.error('Raw search error response:', errorText);
+            }
           } else {
-            await searchResponse.json(); // Process response but we don't need the result
-            console.log('Search completed successfully');
+            const searchResult = await searchResponse.json();
+            console.log('Search completed successfully:', searchResult);
           }
         } catch (searchErr) {
-          console.error('Error triggering search:', searchErr);
+          console.error('Exception when triggering search:', searchErr);
           // Don't throw error here, continue with the flow
         }
         
@@ -337,9 +450,10 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
         <div className="fixed bottom-8 sm:bottom-12 left-1/2 transform -translate-x-1/2 z-30 w-[80%] sm:w-auto max-w-[300px] pointer-events-auto">
           <button
             onClick={handleSubmit}
-            className="w-full bg-black text-white py-3 px-8 rounded-full font-medium hover:bg-black/90 transition-all shadow-lg text-base sm:text-lg animate-pulse hover:animate-none active:scale-95 duration-150"
+            disabled={isLoading}
+            className={`w-full bg-black text-white py-3 px-8 rounded-full font-medium transition-all shadow-lg text-base sm:text-lg ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-black/90 animate-pulse hover:animate-none active:scale-95'} duration-150`}
           >
-            Continue
+            {isLoading ? 'Loading...' : 'Continue'}
           </button>
         </div>
       )}
@@ -355,7 +469,7 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
         {/* Title inside input panel */}
         <PanelTitle 
           title="who i know"
-          subtitle="Add 3 groups of people that you're involved with, a part of, or know a lot of people in"
+          subtitle="Add 3 groups of people that you're involved with, a part of, or know a lot of people in; one at a time!"
           className='mb-4'
         />
         

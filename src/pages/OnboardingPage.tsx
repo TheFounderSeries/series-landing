@@ -1,7 +1,7 @@
 // src/pages/OnboardingPage.tsx
 import { useState, useEffect } from 'react';
 import { useScreenSize } from '../lib/useScreenSize';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePostHog } from 'posthog-js/react';
 import VideoPlayer from '../components/VideoPlayer.tsx';
@@ -9,6 +9,7 @@ import ProfilePage from '../components/ProfilePage.tsx';
 // import PhoneAuthPage from '../components/PhoneAuth.tsx';
 import ConnectionsGraph from './ConnectionsGraph.tsx';
 import UniversityModal from '../components/UniversityModal.tsx';
+import { getApiUrl } from '../utils/api';
 
 type OnboardingData = {
   // Profile data
@@ -43,28 +44,17 @@ const RedirectToIMessage = ({ userData }: RedirectToIMessageProps) => {
   // State for university modal
   const [showModal, setShowModal] = useState(true);
   const [isUniversityStudent, setIsUniversityStudent] = useState<boolean | null>(null);
+  const [modalCompleted, setModalCompleted] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const posthog = usePostHog();
   
-  // Format the bio and name for the message
-  const bio = userData.bio || 'I just joined Series!';
+  // Format the name for the message
   const name = userData.name ? `${userData.name.first} ${userData.name.last}`.trim() : 'User';
-  const connections = userData.connections || [];
   const phoneNumber = userData.phone || '';
   
   // Create message text including the selected connections
   const getMessageText = () => {
-    let message = `Hey, I'm ${name} and I just joined Series!\n\nWho are you?`;
-    
-    // // Add connections information if available
-    // if (connections.length > 0) {
-    //   message += '\n\nI know people who are:';
-    //   connections.forEach(connection => {
-    //     if (typeof connection === 'object' && connection.position) {
-    //       const location = connection.location ? ` from ${connection.location}` : '';
-    //       message += `\n- ${connection.position}${location}`;
-    //     }
-    //   });
-    // }
+    let message = `Hey, I'm ${name} and I just joined Series!\n\So who are you gonna connect me with?`;
     
     return encodeURIComponent(message);
   };
@@ -73,13 +63,45 @@ const RedirectToIMessage = ({ userData }: RedirectToIMessageProps) => {
   const handleYesClick = () => {
     setIsUniversityStudent(true);
     setShowModal(false);
-    setIsRedirecting(true);
+    setModalCompleted(true);
+    
+    // Track university student status
+    posthog.capture('university_status_selected', {
+      is_university_student: true
+    });
   };
   
   const handleNoClick = () => {
     setIsUniversityStudent(false);
     setShowModal(false);
-    setIsRedirecting(true);
+    setModalCompleted(true);
+    
+    // Track university student status
+    posthog.capture('university_status_selected', {
+      is_university_student: false
+    });
+    
+    // Update user metadata to add waitlist property if userId exists
+    if (userData.userId) {
+      // Use getApiUrl to construct the API endpoint URL
+      fetch(getApiUrl(`users/${userData.userId}`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          waitlist: true
+        })
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => console.log('User added to waitlist.'))
+        .catch(error => console.error('Error updating user metadata.'));
+    }
   };
   
   // Get the appropriate deeplink based on university status
@@ -96,23 +118,25 @@ const RedirectToIMessage = ({ userData }: RedirectToIMessageProps) => {
     
     // If we have a phone number but no sender name, use the phone number
     if (phoneNumber) {
-      return `imessage://${phoneNumber}?body=${getMessageText()}`;
+      return `imessage://+18557141806?body=${getMessageText()}`;
     }
     
     // Fallback to default number
     return `imessage://+18557141806?body=${getMessageText()}`;
   };
   
-  // Redirect to iMessage after university modal is closed
-  useEffect(() => {
-    if (isRedirecting) {
-      const timer = setTimeout(() => {
-        window.location.href = getDeeplink();
-      }, 3000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isRedirecting]);
+  // Handle button click to redirect to iMessage
+  const handleRedirectClick = () => {
+    setIsRedirecting(true);
+    
+    // Track redirection event
+    posthog.capture('imessage_redirect_clicked', {
+      is_university_student: isUniversityStudent
+    });
+    
+    // Open iMessage deeplink
+    window.location.href = getDeeplink();
+  };
   
   return (
     <div>
@@ -123,11 +147,21 @@ const RedirectToIMessage = ({ userData }: RedirectToIMessageProps) => {
         onNoClick={handleNoClick}
       />
       
-      {/* Redirect animation */}
+      {/* Show redirect button after modal is completed */}
+      {modalCompleted && !isRedirecting && (
+        <button
+          onClick={handleRedirectClick}
+          className=" bg-black text-white py-4 px-9 rounded-full font-medium transition-all shadow-lg text-base sm:text-lg hover:bg-black/90 active:scale-95 duration-150"
+        > 
+          Take me to my AI friend!
+        </button>
+      )}
+      
+      {/* Redirect animation - only shown after clicking the button */}
       {isRedirecting && (
         <div className="animate-pulse">
           <div className="w-14 sm:w-16 h-14 sm:h-16 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-sm text-gray-500">Redirecting to iMessage...</p>
+          <p className="text-sm text-gray-500">Opening iMessage...</p>
         </div>
       )}
     </div>
@@ -138,10 +172,33 @@ const OnboardingPage = () => {
   // Used for mobile detection and navigation
   const { isMobile } = useScreenSize();
   const navigate = useNavigate();
+  const location = useLocation();
   const posthog = usePostHog();
   
   const [step, setStep] = useState<'video' | 'profile' | 'video2' | 'connections' | 'complete' | 'loading'>('profile');
   const [userData, setUserData] = useState<Partial<OnboardingData>>({});
+  
+  // Extract referrerId from location state if available and store in user data for MongoDB metadata
+  useEffect(() => {
+    if (location.state && 'referrerId' in location.state) {
+      const { referrerId } = location.state as { referrerId: string };
+      if (referrerId) {
+        // Store referrerId in user data to be included in MongoDB metadata
+        setUserData(prevData => ({
+          ...prevData,
+          metadata: {
+            ...(prevData.metadata || {}),
+            referredBy: referrerId
+          }
+        }));
+        
+        // Track that referral ID was passed to onboarding
+        posthog.capture('referral_passed_to_onboarding', {
+          referrer_id: referrerId
+        });
+      }
+    }
+  }, [location.state, posthog]);
   
   // Function to navigate to the next step
   const goToNextStep = (data?: any) => {
@@ -201,6 +258,7 @@ const OnboardingPage = () => {
     animate: { opacity: 1, x: 0 },
     exit: { opacity: 0, x: window.innerWidth <= 768 ? -50 : -100 }
   };
+  console.log(userData);
 
   return (
     <div className="min-h-screen bg-white">
@@ -304,9 +362,12 @@ const OnboardingPage = () => {
             <div className="w-full max-w-lg text-center">
               <h2 className="text-xl sm:text-2xl font-semibold mb-4 tracking-tight">You're all set!</h2>
               <p className="text-sm sm:text-base text-gray-600 max-w-xs mx-auto leading-relaxed mb-6">
-                Opening iMessage to share your Series profile...
+                Text your AI friend here:
               </p>
               <RedirectToIMessage userData={userData} />
+              <p className="text-sm font-medium text-gray-400 mt-12">
+                If the link doesn't work, text {userData.current_sender_name || '+18557141806'} with the following message: <br></br><br></br>"Hey, I'm {userData.name?.first} and I just joined Series! <br></br> So who are you gonna connect me with?"
+              </p>
             </div>
           </motion.div>
         )}
