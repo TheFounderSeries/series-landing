@@ -144,13 +144,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
       // IMPORTANT: This is a profile creation page, so we bypass authentication
       // We automatically validate all uploads from this page without requiring auth
       formData.append('bypass_auth', 'true'); // Signal to backend that this is from profile creation
+      console.log("FORM DATA: ", Array.from(formData.entries()))
       
       // Upload the image to our backend which will handle GCS upload
       // Using our API utility to get the base URL from environment variables
       const response = await fetch(getApiUrl('users/upload-photo'), {
         method: 'POST',
         body: formData,
-        // No auth headers are included here intentionally to bypass authentication
       });
       
       const result = await response.json();
