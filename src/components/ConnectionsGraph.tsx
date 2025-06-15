@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import defaultAvatar from '../assets/images/default-avatar.png';
-import ForceGraph from '../components/ForceGraph';
+import ForceGraph from './ForceGraph';
 import { getApiUrl } from '../utils/api';
 import { usePostHog } from 'posthog-js/react';
 import {
@@ -170,6 +170,17 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
           const fullName = `${firstName} ${lastName}`.trim();
           const randomEmail = `${fullName.toLowerCase().replace(/\s+/g, '')}${Math.floor(Math.random() * 1000)}@series.placeholder`;
           
+          // Log userData to see what we're working with
+          console.log('User data before formatting for creation:', {
+            userData,
+            firstName,
+            lastName,
+            profilePic: userData?.profilePic,
+            phone: userData?.phone,
+            e164Phone,
+            metadata: userData?.metadata
+          });
+          
           const userCreateData: UserCreateData = {
             // Generate a placeholder email
             email: randomEmail,
@@ -195,6 +206,9 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
             // Include metadata with referral information if available
             metadata: userData.metadata
           };
+          
+          // Log the formatted data being sent to the backend
+          console.log('User create data being sent to backend:', JSON.stringify(userCreateData, null, 2));
 
           // Create the user in the backend using fetch directly for more detailed error logging
           try {
@@ -265,6 +279,9 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
               'Content-Type': 'application/json',
             },
           });
+          
+          // Log the search response status
+          console.log('Search response status:', searchResponse.status, searchResponse.statusText);
           
           if (!searchResponse.ok) {
             const errorText = await searchResponse.text();
