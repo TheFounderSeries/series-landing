@@ -292,6 +292,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
       newErrors.phone = 'Please enter a valid 10-digit phone number';
     }
     
+    // Age validation
+    const isAgeValid = userAge !== undefined && userAge >= 18;
+    if (userAge === undefined) {
+      newErrors.age = 'Age is required';
+    } else if (!isAgeValid) {
+      newErrors.age = 'You must be at least 18 years old to use this service';
+    }
+    
     // Location validation
     const isLocationValid = userLocation.trim() !== '';
     if (!isLocationValid) {
@@ -339,7 +347,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
         isFirstNameValid &&
         isLastNameValid &&
         isPhoneValid &&
-        // isAgeValid &&
+        isAgeValid &&
         isLocationValid &&
         isProfilePicValid &&
         isBioValid &&
@@ -889,49 +897,40 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                 </div>
               </div>
               
-              {/* Location field in a white box */}
-              <div
-                className="w-full bg-white rounded-xl flex flex-col items-start px-4 mt-1 gap-1"
-                style={{
-                  // boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
-                  fontFamily: 'SF Pro, system-ui, sans-serif'
-                }}
-              >
-                <div className="flex items-center gap-1">
-                  <span style={{ color: '#111', fontWeight: 600, fontSize: 16 }}>Location</span>
-                  {/* Info icon with tooltip */}
-                  <div className="relative inline-block group">
-                    <div 
-                      className="w-5 h-5 rounded-full flex items-center justify-center cursor-help transition-colors hover:bg-gray-200"
-                    >
-                      <Info className="w-3.5 h-3.5 text-gray-400" />
-                    </div>
-                    <div 
-                      className="absolute opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none"
-                      style={{
-                        zIndex: 100,
-                        width: '11rem',
-                        padding: '0.6rem',
-                        background: 'rgba(0,0,0,0.85)',
-                        color: 'white',
-                        borderRadius: '0.4rem',
-                        fontSize: '0.75rem',
-                        boxShadow: '0 8px 16px rgba(0,0,0,0.15)',
-                        left: '50%',
-                        bottom: '100%',
-                        transform: 'translateX(-50%)',
-                        marginBottom: '0.5rem',
-                        whiteSpace: 'normal',
-                        lineHeight: '1.3',
-                        backdropFilter: 'blur(4px)'
-                      }}
-                    >
-                      Your location helps us connect you with more accurate local matches. It's stored securely and never shared on your profile.
+              {/* Location and Age in a single row */}
+              <div className="w-full flex flex-col md:flex-row gap-4">
+                {/* Location field */}
+                <div className="w-full md:w-1/2 bg-white rounded-xl flex flex-col items-start px-4 mt-1 gap-1">
+                  <div className="flex items-center gap-1">
+                    <span style={{ color: '#111', fontWeight: 600, fontSize: 16 }}>Location</span>
+                    <div className="relative inline-block group">
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center cursor-help transition-colors hover:bg-gray-200">
+                        <Info className="w-3.5 h-3.5 text-gray-400" />
+                      </div>
+                      <div className="absolute opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none"
+                        style={{
+                          zIndex: 100,
+                          width: '11rem',
+                          padding: '0.6rem',
+                          background: 'rgba(0,0,0,0.85)',
+                          color: 'white',
+                          borderRadius: '0.4rem',
+                          fontSize: '0.75rem',
+                          boxShadow: '0 8px 16px rgba(0,0,0,0.15)',
+                          left: '50%',
+                          bottom: '100%',
+                          transform: 'translateX(-50%)',
+                          marginBottom: '0.5rem',
+                          whiteSpace: 'normal',
+                          lineHeight: '1.3',
+                          backdropFilter: 'blur(4px)'
+                        }}
+                      >
+                        Your location helps us connect you with more accurate local matches. It's stored securely and never shared on your profile.
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center w-full">
-                  <div className="relative flex-grow mr-2">
+                  <div className="relative w-full">
                     <input
                       type="text"
                       value={userLocation}
@@ -958,7 +957,81 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                       disabled={isLoading}
                     />
                     {errors.location && (
-                      <p className="absolute text-[0.5rem] text-red-600">{errors.location}</p>
+                      <p className="absolute -bottom-1 text-[0.5rem] text-red-600">{errors.location}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Age Selector */}
+                <div className="w-full md:w-1/2 bg-white rounded-xl flex flex-col items-start px-4 mt-1 gap-1">
+                  <div className="flex items-center gap-1">
+                    <span style={{ color: '#111', fontWeight: 600, fontSize: 16 }}>Age</span>
+                    <div className="relative inline-block group">
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center cursor-help transition-colors hover:bg-gray-200">
+                        <Info className="w-3.5 h-3.5 text-gray-400" />
+                      </div>
+                      <div className="absolute opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none"
+                        style={{
+                          zIndex: 100,
+                          width: '11rem',
+                          padding: '0.6rem',
+                          background: 'rgba(0,0,0,0.85)',
+                          color: 'white',
+                          borderRadius: '0.4rem',
+                          fontSize: '0.75rem',
+                          boxShadow: '0 8px 16px rgba(0,0,0,0.15)',
+                          left: '50%',
+                          bottom: '100%',
+                          transform: 'translateX(-50%)',
+                          marginBottom: '0.5rem',
+                          whiteSpace: 'normal',
+                          lineHeight: '1.3',
+                          backdropFilter: 'blur(4px)'
+                        }}
+                      >
+                        You must be at least 18 years old to use this service.
+                      </div>
+                    </div>
+                  </div>
+                  <div className="relative w-full">
+                    <select
+                      value={userAge || ''}
+                      onChange={e => {
+                        const age = e.target.value ? parseInt(e.target.value, 10) : undefined;
+                        setUserAge(age);
+                        if (errors.age) {
+                          setErrors({...errors, age: undefined});
+                        }
+                      }}
+                      className={`${isMobile ? 'series-shadow' : ''} w-full p-2 mb-2 rounded-lg border appearance-none`}
+                      style={{
+                        fontFamily: 'SF Pro, system-ui, sans-serif',
+                        fontSize: 13,
+                        outline: 'none',
+                        color: !userAge ? '#9CA3AF' : '#222',
+                        backgroundColor: errors.age ? '#FEF2F2' : 'white',
+                        borderColor: errors.age ? '#ef4444' : '#ccc',
+                        borderWidth: errors.age ? '2px' : '1px',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                        height: '36px',
+                        paddingRight: '2rem',
+                        WebkitAppearance: 'none',
+                        backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%236b7280\' strokeWidth=\'2\' strokeLinecap=\'round\' strokeLinejoin=\'round\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")',
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 0.5rem center',
+                        backgroundSize: '1rem',
+                        cursor: 'pointer'
+                      }}
+                      disabled={isLoading}
+                      required
+                    >
+                      <option value="" disabled>Select your age</option>
+                      {Array.from({length: 27}, (_, i) => 14 + i).map(age => (
+                        <option key={age} value={age}>{age}</option>
+                      ))}
+                    </select>
+                    {errors.age && (
+                      <p className="absolute -bottom-1 text-[0.5rem] text-red-600">{errors.age}</p>
                     )}
                   </div>
                 </div>
@@ -1021,7 +1094,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
           </label>
         </motion.div>
 
-        <div className="w-full flex justify-center mt-12">
+        <div className="w-full flex justify-center mt-6">
           <AnimatePresence mode="wait">
             <button
               className="rounded-full flex items-center justify-center transition-colors"
