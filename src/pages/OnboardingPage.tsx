@@ -175,7 +175,7 @@ const OnboardingPage = () => {
   const location = useLocation();
   const posthog = usePostHog();
   
-  const [step, setStep] = useState<'video' | 'profile' | 'video2' | 'connections' | 'complete' | 'loading'>('profile');
+  const [step, setStep] = useState<'video' | 'profile' | 'video2' | 'connections' | 'complete' | 'loading'>('video');
   const [userData, setUserData] = useState<Partial<OnboardingData>>({});
   
   // Extract referrerId from location state if available and store in user data for MongoDB metadata

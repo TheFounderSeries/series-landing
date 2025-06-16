@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useScreenSize } from '../lib/useScreenSize';
 import { getApiUrl } from '../utils/api';
 import { usePostHog } from 'posthog-js/react';
@@ -45,7 +45,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   const [userLocation, setUserLocation] = useState(initialData.location || '');
   const [description, setDescription] = useState(initialData.bio || '');
   const [connections, setConnections] = useState(initialData.connections || ['', '', '']);
-  const [enhanceWithAI, setEnhanceWithAI] = useState(initialData.enhanceWithAI !== false);
+  const [enhanceWithAI, setEnhanceWithAI] = useState(initialData.enhanceWithAI ?? true);
+  const [agreedToTOS, setAgreedToTOS] = useState(false);
   const [profilePic, setProfilePic] = useState(initialData.profilePic || initialProfilePic);
   // We use profilePic for both display and backend storage
   const [color] = useState(Math.floor(Math.random() * 5));
@@ -311,6 +312,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
       newErrors.bio = 'Please write at least 30 characters about yourself';
     }
     
+    // TOS agreement validation
+    if (!agreedToTOS) {
+      newErrors.tos = 'You must agree to the terms of service';
+    }
+    
     // Log validation state for debugging
     // console.log('Field validation states:', {
     //   isFirstNameValid,
@@ -336,7 +342,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
         // isAgeValid &&
         isLocationValid &&
         isProfilePicValid &&
-        isBioValid
+        isBioValid &&
+        agreedToTOS
       );
     }
     
@@ -346,7 +353,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   
   // Helper function to check if form is filled enough to enable the submit button
   const isFormFilledEnough = () => {
-    return validateForm(false);
+    return (
+      validateForm(false) &&
+      connections.every(conn => 
+        typeof conn === 'string' || 
+        (conn.position && conn.position.trim().length > 0 && conn.location && conn.location.trim().length > 0)
+      ) &&
+      agreedToTOS
+    );
   };
 
   // Form submission with validation
@@ -792,33 +806,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                 );
               })}
             </div> */}
-
-            {/* AI Toggle - Copied from QuestionnaireOnboarding
-            <motion.div 
-              className="flex items-center justify-center w-full"
-            >
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  className="sr-only peer"
-                  checked={enhanceWithAI}
-                  onChange={() => setEnhanceWithAI(prev => !prev)}
-                  id="ai-toggle"
-                />
-                <motion.div 
-                  className="w-7 h-4 bg-white-100 rounded-full peer dark:bg-gray-400 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-100 after:border after:rounded-full after:h-3 after:w-3 after:transition-all dark:border-gray-100 peer-checked:bg-black"
-                  whileTap={{ scale: 0.95 }}
-                  style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
-                />
-                <motion.span 
-                  className="ms-3 text-xs font-medium text-gray-900 whitespace-nowrap"
-                  whileHover={{ scale: 1.02 }}
-                  style={{ fontFamily: 'SF Pro, system-ui, sans-serif' }}
-                >
-                  Enhance your profile with AI
-                </motion.span>
-              </label>
-            </motion.div> */}
           </div>
         </div>
 
@@ -979,6 +966,60 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
             </div>
           </div>
         </div>
+
+        {/* AI Toggle - Copied from QuestionnaireOnboarding */}
+        <motion.div 
+          className="flex items-center justify-center w-full"
+        >
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input 
+              type="checkbox" 
+              className="sr-only peer"
+              checked={enhanceWithAI}
+              onChange={() => setEnhanceWithAI(prev => !prev)}
+              id="ai-toggle"
+            />
+            <motion.div 
+              className="w-7 h-4 bg-white-100 rounded-full peer dark:bg-gray-400 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-100 after:border after:rounded-full after:h-3 after:w-3 after:transition-all dark:border-gray-100 peer-checked:bg-black"
+              whileTap={{ scale: 0.95 }}
+              style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+            />
+            <motion.span 
+              className="ms-3 text-xs font-medium text-gray-900 whitespace-nowrap"
+              whileHover={{ scale: 1.02 }}
+              style={{ fontFamily: 'SF Pro, system-ui, sans-serif' }}
+            >
+              Enhance your profile with AI
+            </motion.span>
+          </label>
+        </motion.div>
+
+        {/* TOS Toggle - Copied from QuestionnaireOnboarding */}
+        <motion.div 
+          className="flex items-center justify-center w-full mt-2"
+        >
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input 
+              type="checkbox" 
+              className="sr-only peer"
+              checked={agreedToTOS}
+              onChange={() => setAgreedToTOS(prev => !prev)}
+              id="tos-toggle"
+            />
+            <motion.div 
+              className="w-7 h-4 bg-white-100 rounded-full peer dark:bg-gray-400 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-100 after:border after:rounded-full after:h-3 after:w-3 after:transition-all dark:border-gray-100 peer-checked:bg-black"
+              whileTap={{ scale: 0.95 }}
+              style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+            />
+            <motion.span 
+              className="ms-3 text-xs font-medium text-gray-900 whitespace-nowrap"
+              whileHover={{ scale: 1.02 }}
+              style={{ fontFamily: 'SF Pro, system-ui, sans-serif' }}
+            >
+              Agree to our <a href="/tos" className="text-blue-600">Terms of Service</a> and <a href="/privacy" className="text-blue-600">Privacy Policy</a>
+            </motion.span>
+          </label>
+        </motion.div>
 
         <div className="w-full flex justify-center mt-12">
           <AnimatePresence mode="wait">

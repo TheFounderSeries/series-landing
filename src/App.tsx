@@ -5,6 +5,8 @@ import LandingPage from './pages/LandingPage';
 import OnboardingPage from './pages/OnboardingPage';
 import EuniceLandingPage from './pages/EuniceLandingPage';
 import EuniceOnboardingPage from './pages/EuniceOnboardingPage';
+import TOS from './pages/TOS';
+import Privacy from './pages/Privacy';
 // import ForceGraphTest from './pages/ForceGraphTest';
 // import ProfileOnboarding from './ProfileOnboarding';
 // import QuestionnaireOnboarding from './QuestionnaireOnboarding';
@@ -138,6 +140,8 @@ const App = () => {
       <Routes>
         <Route path="/" element={<TrackedLandingPage />} />
         <Route path="/join" element={<TrackedOnboardingPage />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/tos" element={<TOS />} />
         {/* Redirect from /eunice to /?ref=eunice */}
         <Route path="/eunice" element={<TrackedEuniceLandingPage />} />
         <Route path="/eunice/join" element={<TrackedEuniceOnboardingPage />} />
