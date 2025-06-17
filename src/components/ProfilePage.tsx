@@ -1026,7 +1026,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                       required
                     >
                       <option value="" disabled>Select your age</option>
-                      {Array.from({length: 27}, (_, i) => 14 + i).map(age => (
+                      {Array.from({length: 13}, (_, i) => 18 + i).map(age => (
                         <option key={age} value={age}>{age}</option>
                       ))}
                     </select>
