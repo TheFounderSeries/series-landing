@@ -9,6 +9,7 @@ import ProfilePage from '../components/ProfilePage.tsx';
 // import PhoneAuthPage from '../components/PhoneAuth.tsx';
 import ConnectionsGraph from './ConnectionsGraph.tsx';
 import UniversityModal from '../components/UniversityModal.tsx';
+import EmailInputModal from '../components/EmailInputModal.tsx';
 import { getApiUrl } from '../utils/api';
 
 type OnboardingData = {
@@ -41,10 +42,12 @@ interface RedirectToIMessageProps {
 }
 
 const RedirectToIMessage = ({ userData }: RedirectToIMessageProps) => {
-  // State for university modal
-  const [showModal, setShowModal] = useState(true);
+  // State for modals
+  const [showUniversityModal, setShowUniversityModal] = useState(true);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const [isUniversityStudent, setIsUniversityStudent] = useState<boolean | null>(null);
   const [modalCompleted, setModalCompleted] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
   const [isRedirecting, setIsRedirecting] = useState(false);
   const posthog = usePostHog();
   
@@ -62,8 +65,8 @@ const RedirectToIMessage = ({ userData }: RedirectToIMessageProps) => {
   // Handle university modal responses
   const handleYesClick = () => {
     setIsUniversityStudent(true);
-    setShowModal(false);
-    setModalCompleted(true);
+    setShowUniversityModal(false);
+    setShowEmailModal(true);
     
     // Track university student status
     posthog.capture('university_status_selected', {
@@ -71,9 +74,34 @@ const RedirectToIMessage = ({ userData }: RedirectToIMessageProps) => {
     });
   };
   
+  // Handle email submission
+  const handleEmailSubmit = (email: string) => {
+    setUserEmail(email);
+    setShowEmailModal(false);
+    setModalCompleted(true);
+    
+    // Track email submission
+    posthog.capture('edu_email_submitted', {
+      email: email
+    });
+    
+    // Update user metadata with university email if userId exists
+    if (userData.userId) {
+      fetch(getApiUrl(`users/${userData.userId}`), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          universityEmail: email
+        })
+      });
+    }
+  };
+  
   const handleNoClick = () => {
     setIsUniversityStudent(false);
-    setShowModal(false);
+    setShowUniversityModal(false);
     setModalCompleted(true);
     
     // Track university student status
@@ -141,10 +169,16 @@ const RedirectToIMessage = ({ userData }: RedirectToIMessageProps) => {
   return (
     <div>
       {/* University Modal */}
-      <UniversityModal 
-        isOpen={showModal}
+      <UniversityModal
+        isOpen={showUniversityModal && !modalCompleted}
         onYesClick={handleYesClick}
         onNoClick={handleNoClick}
+      />
+      
+      <EmailInputModal
+        isOpen={showEmailModal && !modalCompleted}
+        onSubmit={handleEmailSubmit}
+        onClose={() => setShowEmailModal(false)}
       />
       
       {/* Show redirect button after modal is completed */}
