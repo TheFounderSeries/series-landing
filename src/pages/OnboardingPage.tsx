@@ -234,6 +234,26 @@ const OnboardingPage = () => {
     }
   }, [location.state, posthog]);
   
+  // Handle referredBy phone number from ProfilePage
+  useEffect(() => {
+    if (userData.referredBy) {
+      // Store referredBy phone number in user data to be included in MongoDB metadata
+      setUserData(prevData => ({
+        ...prevData,
+        metadata: {
+          ...(prevData.metadata || {}),
+          referredBy: userData.referredBy
+        }
+      }));
+
+      console.log("Referral provided");
+      // Track that referral phone was provided
+      posthog.capture('referral_phone_provided', {
+        referral_phone: userData.referredBy
+      });
+    }
+  }, [userData.referredBy, posthog]);
+  
   // Function to navigate to the next step
   const goToNextStep = (data?: any) => {
     // Update user data if provided

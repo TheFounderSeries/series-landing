@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import ReferralModal from './ReferralModal';
 import { useScreenSize } from '../lib/useScreenSize';
 import { getApiUrl } from '../utils/api';
 import { usePostHog } from 'posthog-js/react';
@@ -31,6 +32,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
 }) => {
   const { isMobile } = useScreenSize();
   const [isLoading, setIsLoading] = useState(false);
+  const [showReferralModal, setShowReferralModal] = useState(false);
+  const [referredBy, setReferredBy] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const posthog = usePostHog();
   
@@ -371,8 +374,39 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     );
   };
 
+  // Track if we should submit the form after referral modal closes
+  const [shouldSubmit, setShouldSubmit] = useState(false);
+
+  // Handle form submission after referral state updates
+  useEffect(() => {
+    if (shouldSubmit) {
+      handleFormSubmit();
+      setShouldSubmit(false);
+    }
+  }, [referredBy, shouldSubmit]);
+
+  // Handle referral modal submission
+  const handleReferralSubmit = (phoneNumber: string) => {
+    console.log('Referral submitted:', phoneNumber);
+    setReferredBy(phoneNumber);
+    setShowReferralModal(false);
+    setShouldSubmit(true);
+  };
+
+  // Handle referral modal cancellation
+  const handleReferralCancel = () => {
+    setShowReferralModal(false);
+    setShouldSubmit(true);
+  };
+
   // Form submission with validation
   const handleSubmit = async () => {
+    // Show referral modal before proceeding
+    setShowReferralModal(true);
+  };
+
+  // Actual form submission after referral modal
+  const handleFormSubmit = async () => {
     
     // Track form submission attempt
     posthog.capture('profile_form_submission_attempt');
@@ -423,6 +457,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
       location: userLocation || "New York",
       // Pass bio as a string for iMessage sharing
       bio: description || "This is a test bio for debugging purposes.",
+      // Pass referral phone number if available
+      referredBy: referredBy ? formatPhoneToE164(referredBy) : '',
       // Pass connections data if available
       connections: connections.filter(c => c && c !== '').map(c => {
         // Handle both string and object formats
@@ -769,38 +805,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
                           });
                         }
                       }}
-                    placeholder={[
-                      'new york area student entrepeneurs in SaaS and healthtech',
-                      'the founders of Prod',
-                      'friends and family investors'
-                    ][index % 3]}
-                      className={`${isMobile ? 'series-shadow series-placeholder' : ''} w-full placeholder:italic`}
-                      style={{
-                        height: 36,
-                        borderRadius: 8,
-                        fontFamily: 'SF Pro, system-ui, sans-serif',
-                        fontWeight: 400,
-                        fontSize: 13,
-                        paddingLeft: 10,
-                        paddingRight: 30,
-                        outline: 'none',
-                        color: '#222',
-                        transition: 'all 0.2s',
-                        border: hasError ? '2px solid #ef4444' : '1px solid #ccc',
-                        backgroundColor: hasError ? '#FEF2F2' : 'white',
-                        boxShadow: hasError ? '0 0 0 2px rgba(239, 68, 68, 0.2)' : '0 2px 6px rgba(0,0,0,0.12)'
-                      }}
-                      onFocus={e => {
-                        e.target.style.borderWidth = hasError ? '2px' : '1px';
-                        e.target.style.boxShadow = hasError 
-                          ? '0 0 0 3px rgba(239, 68, 68, 0.3)' 
-                          : '0 0 0 3px rgba(59, 130, 246, 0.3)';
-                      }}
-                      onBlur={e => {
-                        e.target.style.borderWidth = hasError ? '2px' : '1px';
-                        e.target.style.boxShadow = hasError 
-                          ? '0 0 0 2px rgba(239, 68, 68, 0.2)' 
-                          : '0 2px 6px rgba(0,0,0,0.12)';
                       }}
                       disabled={isLoading}
                     />
@@ -1125,6 +1129,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
           </AnimatePresence>
         </div> 
       </div>
+
+      {/* Referral Modal */}
+      <ReferralModal
+        isOpen={showReferralModal}
+        onSubmit={handleReferralSubmit}
+        onCancel={handleReferralCancel}
+      />
     </div>
   );
 };

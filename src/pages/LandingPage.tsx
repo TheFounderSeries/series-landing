@@ -8,10 +8,24 @@ import { usePostHog } from 'posthog-js/react';
 
 const LandingPage = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const { isMobile } = useScreenSize();
   const navigate = useNavigate();
   const location = useLocation();
   const posthog = usePostHog();
+  
+  // Track scroll position to show/hide footer
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrolled = window.scrollY > 100; // Show footer after 100px of scrolling
+      if (scrolled !== isScrolled) {
+        setIsScrolled(scrolled);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isScrolled]);
   
   // Extract referral ID from URL query parameters
   const [referrerId, setReferrerId] = useState<string | null>(null);
@@ -382,6 +396,61 @@ const LandingPage = () => {
                 </div>
               </motion.div>
             )}
+            
+            {/* Footer with links - only shown when scrolled */}
+            <motion.footer 
+              className={`fixed bottom-0 left-0 right-0 py-4 bg-white border-t border-gray-100 z-10 ${
+                isScrolled ? 'translate-y-0' : 'translate-y-full'
+              }`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{
+                opacity: isScrolled ? 1 : 0,
+                y: isScrolled ? 0 : 20,
+              }}
+              transition={{
+                type: 'spring',
+                damping: 20,
+                stiffness: 300,
+              }}
+            >
+              <div className="flex justify-center space-x-6 text-sm text-gray-500">
+                <a 
+                  href="/privacy" 
+                  className="hover:text-black transition-colors"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    posthog.capture('footer_link_clicked', { link: 'privacy' });
+                    navigate('/privacy');
+                  }}
+                >
+                  Privacy
+                </a>
+                <span>•</span>
+                <a 
+                  href="/terms" 
+                  className="hover:text-black transition-colors"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    posthog.capture('footer_link_clicked', { link: 'terms' });
+                    navigate('/terms');
+                  }}
+                >
+                  Terms of Use
+                </a>
+                <span>•</span>
+                <a 
+                  href="/tos" 
+                  className="hover:text-black transition-colors"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    posthog.capture('footer_link_clicked', { link: 'tos' });
+                    navigate('/tos');
+                  }}
+                >
+                  TOS
+                </a>
+              </div>
+            </motion.footer>
           </>
         )}
       </AnimatePresence>
