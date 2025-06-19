@@ -1,7 +1,9 @@
-import React from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 
 export default function Privacy() {
+    const [showOriginal, setShowOriginal] = useState(false);
+    const toggleOriginal = () => setShowOriginal(!showOriginal);
     const sections = [
         {
             title: 'Information We Collect',
@@ -89,27 +91,22 @@ export default function Privacy() {
             transition={{ duration: 0.5 }}
             className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8"
         >
-            <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-8">
-                <div className="text-center mb-12">
-                    <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Privacy Policy</h1>
-                    <p className="text-gray-600">Last updated: June 15th, 2025</p>
+            <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-8">
+                <div className="text-center mb-6">
+                    <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">Privacy Policy</h1>
+                    <p className="text-gray-600 mb-4">Last updated: June 17th, 2025</p>
                 </div>
 
-                <div className="prose prose-lg max-w-none">
-                    <p className="text-lg text-gray-700 mb-8">
-                        This Privacy Policy explains how The Founder Series, Inc. ("Series", "we", "us", "our") collects, uses, and protects your information when you use our website, mobile app, and related services (the "Services").
-                    </p>
-
-                    <div className="space-y-12">
-                        {sections.map((section, index) => (
-                            <section key={index} className="border-b border-gray-100 pb-8 last:border-0 last:pb-0">
-                                <h2 className="text-2xl font-bold text-gray-900 mb-4">{index + 1}. {section.title}</h2>
-                                <div className="text-gray-700 leading-relaxed">
-                                    {section.content}
-                                </div>
-                            </section>
-                        ))}
-                    </div>
+                <div className="w-full h-[80vh]">
+                    <iframe 
+                        src="/The%20Founder%20Series_Privacy%20Policy.pdf" 
+                        className="w-full h-full border-0"
+                        title="Privacy Policy"
+                    >
+                        <p>Your browser does not support PDFs. 
+                            <a href="/The%20Founder%20Series_Privacy%20Policy.pdf">Download the Privacy Policy</a>.
+                        </p>
+                    </iframe>
                 </div>
             </div>
         </motion.div>

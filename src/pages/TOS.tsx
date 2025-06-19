@@ -1,7 +1,10 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 
 export default function TOS() {
+    const [showOriginal, setShowOriginal] = useState(false);
+    const toggleOriginal = () => setShowOriginal(!showOriginal);
     const sections = [
         {
             title: 'Eligibility',
@@ -81,31 +84,22 @@ export default function TOS() {
             transition={{ duration: 0.5 }}
             className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8"
         >
-            <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-8">
-                <div className="text-center mb-12">
-                    <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Terms of Service</h1>
-                    <p className="text-gray-600">Last updated: June 15th, 2025</p>
+            <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-8">
+                <div className="text-center mb-6">
+                    <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">Terms of Service</h1>
+                    <p className="text-gray-600 mb-4">Last updated: June 17th, 2025</p>
                 </div>
 
-                <div className="prose prose-lg max-w-none">
-                    <p className="text-lg text-gray-700 mb-8">
-                        Welcome to Series! These Terms of Service ("Terms") are a legal agreement between you ("you", "your") and 
-                        The Founder Series, Inc. ("Series", "we", "us", "our"). By creating an account or using our website, 
-                        mobile app, or any related services (collectively, the "Services"), you agree to these Terms.
-                    </p>
-
-                    <div className="space-y-12">
-                        {sections.map((section, index) => (
-                            <section key={index} className="border-b border-gray-100 pb-8 last:border-0 last:pb-0">
-                                <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                                    {section.title}
-                                </h2>
-                                <div className="text-gray-700 leading-relaxed">
-                                    {section.content}
-                                </div>
-                            </section>
-                        ))}
-                    </div>
+                <div className="w-full h-[80vh]">
+                    <iframe 
+                        src="/The%20Founder%20Series_Terms%20of%20Service.pdf" 
+                        className="w-full h-full border-0"
+                        title="Terms of Service"
+                    >
+                        <p>Your browser does not support PDFs. 
+                            <a href="/The%20Founder%20Series_Terms%20of%20Service.pdf">Download the Terms of Service</a>.
+                        </p>
+                    </iframe>
                 </div>
             </div>
         </motion.div>

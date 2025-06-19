@@ -1089,7 +1089,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
               whileHover={{ scale: 1.02 }}
               style={{ fontFamily: 'SF Pro, system-ui, sans-serif' }}
             >
-              Agree to our <a href="/tos" className="text-blue-600">Terms of Service</a> and <a href="/privacy" className="text-blue-600">Privacy Policy</a>
+              Agree to our <a href="/tos" className="text-blue-600">Terms of Service</a>, <a href="/tou" className="text-blue-600">Terms of Use</a>, and <a href="/privacy" className="text-blue-600">Privacy Policy</a>
             </motion.span>
           </label>
         </motion.div>
