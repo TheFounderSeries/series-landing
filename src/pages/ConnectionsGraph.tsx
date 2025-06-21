@@ -198,7 +198,7 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
 
           // Create the user in the backend using fetch directly for more detailed error logging
           try {
-            console.log('Sending user creation request to:', getApiUrl('users'));
+            // console.log('Sending user creation request to:', getApiUrl('users'));
             
             const response = await fetch(getApiUrl('users'), {
               method: 'POST',
@@ -209,7 +209,7 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
             });
             
             // Log the raw response status
-            console.log('User creation response status:', response.status, response.statusText);
+            // console.log('User creation response status:', response.status, response.statusText);
             
             // If response is not ok, get the error details
             if (!response.ok) {
@@ -239,7 +239,7 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
             
             // Parse the successful response
             const createdUser = await response.json();
-            console.log('User created successfully:', createdUser);
+            // console.log('User created successfully:', createdUser);
             userId = createdUser.userId || e164Phone;
           } catch (error) {
             console.error('Error in user creation process:', error);
@@ -253,11 +253,11 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
           const enhanceWithAI = userData?.enhanceWithAI !== undefined ? userData.enhanceWithAI : true;
           const searchUrl = getApiUrl(`users/${userId}/search?enhance_with_ai=${enhanceWithAI}`);
           
-          console.log('Triggering search endpoint:', {
-            url: searchUrl,
-            userId,
-            enhanceWithAI
-          });
+          // console.log('Triggering search endpoint:', {
+          //   url: searchUrl,
+          //   userId,
+          //   enhanceWithAI
+          // });
           
           const searchResponse = await fetch(searchUrl, {
             method: 'POST',
@@ -284,7 +284,7 @@ const ConnectionsGraph: React.FC<ConnectionsGraphProps> = ({ userData = {}, onSu
             }
           } else {
             const searchResult = await searchResponse.json();
-            console.log('Search completed successfully:', searchResult);
+            // console.log('Search completed successfully:', searchResult);
           }
         } catch (searchErr) {
           console.error('Exception when triggering search:', searchErr);

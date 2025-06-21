@@ -311,7 +311,7 @@ const OnboardingPage = () => {
     animate: { opacity: 1, x: 0 },
     exit: { opacity: 0, x: window.innerWidth <= 768 ? -50 : -100 }
   };
-  console.log(userData);
+  // console.log(userData);
 
   return (
     <div className="min-h-screen bg-white">

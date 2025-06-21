@@ -127,8 +127,8 @@ const RedirectToIMessage = ({ userData }: RedirectToIMessageProps) => {
           }
           return response.json();
         })
-        .then(data => console.log('User added to waitlist.'))
-        .catch(error => console.error('Error updating user metadata.'));
+        // .then(data => console.log('User added to waitlist.'))
+        // .catch(error => console.error('Error updating user metadata.'));
     }
   };
   
@@ -246,7 +246,7 @@ const OnboardingPage = () => {
         }
       }));
 
-      console.log("Referral provided");
+      // console.log("Referral provided");
       // Track that referral phone was provided
       posthog.capture('referral_phone_provided', {
         referral_phone: userData.referredBy
@@ -312,7 +312,7 @@ const OnboardingPage = () => {
     animate: { opacity: 1, x: 0 },
     exit: { opacity: 0, x: window.innerWidth <= 768 ? -50 : -100 }
   };
-  console.log(userData);
+  // console.log(userData);
 
   return (
     <div className="min-h-screen bg-white">

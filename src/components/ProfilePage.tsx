@@ -96,12 +96,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
   // Handle photo upload with Google Cloud Storage
   // This implementation intentionally bypasses authentication for profile creation
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-    console.log('Photo upload initiated');
+    // console.log('Photo upload initiated');
     if (!event.target.files || event.target.files.length === 0) {
-      console.log('No files selected');
+      // console.log('No files selected');
       return;
     }
-    console.log('File selected:', event.target.files[0].name);
+    // console.log('File selected:', event.target.files[0].name);
     const file = event.target.files[0];
     if (!file) return;
     
@@ -148,7 +148,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
       // IMPORTANT: This is a profile creation page, so we bypass authentication
       // We automatically validate all uploads from this page without requiring auth
       formData.append('bypass_auth', 'true'); // Signal to backend that this is from profile creation
-      console.log("FORM DATA: ", Array.from(formData.entries()))
+      // console.log("FORM DATA: ", Array.from(formData.entries()))
       
       // Upload the image to our backend which will handle GCS upload
       // Using our API utility to get the base URL from environment variables
@@ -387,7 +387,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
 
   // Handle referral modal submission
   const handleReferralSubmit = (phoneNumber: string) => {
-    console.log('Referral submitted:', phoneNumber);
+    // console.log('Referral submitted:', phoneNumber);
     setReferredBy(phoneNumber);
     setShowReferralModal(false);
     setShouldSubmit(true);
