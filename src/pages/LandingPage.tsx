@@ -5,6 +5,7 @@ import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
 import RollingWord from '../components/RollingWord';
 import { useScreenSize } from '../lib/useScreenSize';
 import { usePostHog } from 'posthog-js/react';
+import { Helmet } from 'react-helmet';
 
 const LandingPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -162,6 +163,10 @@ const LandingPage = () => {
   // Render different layouts based on screen size
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center relative">
+      <Helmet>
+        <title>Series</title>
+        <meta name="description" content="The first AI social network. Don't bother your friends for warm intros, bother your AI friend (who knows more people anyway) instead." />
+      </Helmet>
       <AnimatePresence mode="wait">
         {isLoading ? (
           <motion.a
